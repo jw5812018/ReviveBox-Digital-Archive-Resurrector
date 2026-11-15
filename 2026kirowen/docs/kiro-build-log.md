@@ -142,3 +142,12 @@ Kiro 功能使用：任务工具更新 tasks.md 状态；execute_pwsh 写文件�
 - `npm run build` 通过（dist：JS 291 kB / CSS 9.6 kB）。
 - `npm start`（tsx 生产服务，3001 端口）实测：GET / → 200 应用页面；GET /demo/sample-bookmarks.html → 200 示例文件可下载；GET /some/client/route → 200 SPA 回退正常；GET /api/health → {"ok":true}。
 - 阶段 5 验收点"生产构建能运行"达成。部署剩余事项：选定平台后的实际上线（阶段 6，需用户决策）。
+## 2026-11-15 — GitHub 部署（阶段 6 进行中）
+
+- 初始提交 83 文件（源码、specs、steering、hooks、docs、锁文件、Pages workflow），rebase 合入远程 LICENSE 初始提交后推送成功。
+- 仓库公开可见：https://github.com/jw5812018/ReviveBox-Digital-Archive-Resurrector
+- 过程问题：git 代理 127.0.0.1:7897 未运行导致连接失败（用户启动代理后恢复）；凭据过期 403（擦除后浏览器重授权）；远程初始提交导致 non-fast-forward（rebase 解决）。
+- Pages 适配：vite base 改相对路径（'./'），Dashboard 示例文件链接去前导斜杠（Pages 项目站点带子路径）。
+- GitHub Actions workflow（.github/workflows/pages.yml）：npm ci + build → upload-pages-artifact → deploy-pages。Node 22。
+- 待用户操作：仓库 Settings → Pages → Source 选 "GitHub Actions" 后完成首次部署。
+- 已知限制（README 已声明）：Pages 为静态托管，在线订阅刷新不可用（无服务端）；其余功能全部浏览器本地运行。
