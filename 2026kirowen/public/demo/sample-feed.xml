@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sample RSS 2.0 snapshot for EchoShelf demo. All links use the reserved example.org domain. -->
+<rss version="2.0">
+  <channel>
+    <title>Example Feed (Sample)</title>
+    <link>https://example.org/feed</link>
+    <description>A static sample feed snapshot for import testing.</description>
+    <item>
+      <title>Local-first software principles</title>
+      <link>https://example.org/feed/local-first?utm_campaign=rss</link>
+      <description>Local-first software keeps your data on your devices. (Duplicate of a demo article — watch it merge.)</description>
+      <pubDate>Sun, 09 Aug 2026 10:00:00 GMT</pubDate>
+      <guid>https://example.org/feed/local-first</guid>
+    </item>
+    <item>
+      <title>书签去重的三种策略</title>
+      <link>https://example.org/feed/dedup-strategies-zh</link>
+      <description>按 URL 精确匹配、按规范化 URL 匹配、按内容指纹匹配——三种策略的比较。（与示例库中已有文章重复，用于演示去重。）</description>
+      <pubDate>Fri, 11 Sep 2026 08:30:00 GMT</pubDate>
+      <guid>https://example.org/feed/dedup-strategies-zh</guid>
+    </item>
+    <item>
+      <title>Static site generators for note publishing</title>
+      <link>https://example.org/feed/static-site-notes</link>
+      <description>A sample article about turning a folder of markdown notes into a small public site.</description>
+      <pubDate>Mon, 02 Nov 2026 14:00:00 GMT</pubDate>
+      <guid>https://example.org/feed/static-site-notes</guid>
+    </item>
+    <item>
+      <title>为什么备份格式需要版本号</title>
+      <link>https://example.org/feed/backup-versioning-zh</link>
+      <description>没有版本号的导出文件，在格式演进后会变成无法安全导入的定时炸弹。这篇示例文章解释 schemaVersion 的作用。</description>
+      <pubDate>Wed, 11 Nov 2026 09:15:00 GMT</pubDate>
+      <guid>https://example.org/feed/backup-versioning-zh</guid>
+    </item>
+  </channel>
+</rss>

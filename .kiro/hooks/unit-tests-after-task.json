@@ -1,0 +1,13 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Unit tests after task completion",
+      "trigger": "PostTaskExec",
+      "action": {
+        "type": "command",
+        "command": "npm --prefix 2026kirowen test"
+      }
+    }
+  ]
+}

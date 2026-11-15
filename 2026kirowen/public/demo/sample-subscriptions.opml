@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sample OPML for EchoShelf demo. All feeds use the reserved example.org domain. -->
+<opml version="2.0">
+  <head>
+    <title>Sample subscriptions</title>
+  </head>
+  <body>
+    <outline text="Tech" title="Tech">
+      <outline text="Example Dev Blog" title="Example Dev Blog" type="rss" xmlUrl="https://example.org/feeds/dev.xml" htmlUrl="https://example.org/blog"/>
+      <outline text="Web History Weekly" title="Web History Weekly" type="rss" xmlUrl="https://example.org/feeds/history.xml" htmlUrl="https://example.org/history"/>
+    </outline>
+    <outline text="独立博客示例" title="独立博客示例" type="rss" xmlUrl="https://example.org/feeds/blog-zh.xml" htmlUrl="https://example.org/blog-zh"/>
+  </body>
+</opml>
