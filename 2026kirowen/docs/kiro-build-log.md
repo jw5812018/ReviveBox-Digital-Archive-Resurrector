@@ -151,3 +151,9 @@ Kiro 功能使用：任务工具更新 tasks.md 状态；execute_pwsh 写文件�
 - GitHub Actions workflow（.github/workflows/pages.yml）：npm ci + build → upload-pages-artifact → deploy-pages。Node 22。
 - 待用户操作：仓库 Settings → Pages → Source 选 "GitHub Actions" 后完成首次部署。
 - 已知限制（README 已声明）：Pages 为静态托管，在线订阅刷新不可用（无服务端）；其余功能全部浏览器本地运行。
+## 2026-11-15 — Pages 上线完成（阶段 6 部署达成）
+
+- 安装 gh CLI 2.104.0（winget），设备码授权（jw5812018，repo scope），gh auth setup-git 接管 git 凭据。
+- gh api 开启 Pages（build_type=workflow），重跑失败的部署工作流：build 27s + deploy 成功。
+- 线上验证 https://jw5812018.github.io/ReviveBox-Digital-Archive-Resurrector/ ：首页 200（title=EchoShelf、root div、资源相对路径加载）、示例书签文件可下载（200）。
+- 在线演示地址达成（评委无登录可体验主流程）；已知限制不变：Pages 静态托管无服务端，在线订阅刷新不可用。
