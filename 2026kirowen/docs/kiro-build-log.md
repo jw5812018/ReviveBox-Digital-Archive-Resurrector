@@ -157,3 +157,13 @@ Kiro 功能使用：任务工具更新 tasks.md 状态；execute_pwsh 写文件�
 - gh api 开启 Pages（build_type=workflow），重跑失败的部署工作流：build 27s + deploy 成功。
 - 线上验证 https://jw5812018.github.io/ReviveBox-Digital-Archive-Resurrector/ ：首页 200（title=EchoShelf、root div、资源相对路径加载）、示例书签文件可下载（200）。
 - 在线演示地址达成（评委无登录可体验主流程）；已知限制不变：Pages 静态托管无服务端，在线订阅刷新不可用。
+## 2026-11-15 — 界面美化（加分项：视觉打磨）
+
+- 设计系统重写：暖纸底 + 径向琥珀微光背景、三层阴影体系、圆角分级；标题 Georgia 衬线（中文回落宋体系），UI 系统字体含 PingFang/雅黑回落。
+- 侧栏：品牌区加 small-caps 副标题"personal archive"，导航激活态左侧琥珀条，计数改药丸样式。
+- 列表卡片：悬浮浮起阴影、选中态左侧琥珀条；类型徽标改为彩色圆点（书签琥珀/文章橄榄/笔记赭红）；Rediscover 卡片柔和琥珀渐变点亮（guide 第 5 节"柔和的点亮"）。
+- 搜索框改胶囊形 + 内嵌图标与聚焦光环；详情面板元信息改发丝线分栏、小写大写字母标签。
+- Dashboard：CSS 绘制三层"书架"装饰线（aria-hidden），衬线斜体标语。
+- 滚动条细化为圆角滑块；::selection 琥珀底色。
+- 约束保持：所有 E2E 选择器与可访问名不变，reduced-motion 全量降级，对比度不变（ink #2b2118/paper #faf6ec ≈ 13:1，muted #6f6252 ≈ 5.3:1，accent #b45309 ≈ 4.6:1）。
+- 验证：tsc、eslint、build、3 E2E 全绿。

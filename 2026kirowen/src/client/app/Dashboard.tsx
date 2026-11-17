@@ -7,6 +7,9 @@ interface DashboardProps {
 export function Dashboard({ onTryDemo, onImport }: DashboardProps) {
   return (
     <div className="dashboard">
+      <div className="dashboard-shelf" aria-hidden="true">
+        <span /><span /><span />
+      </div>
       <h1 className="dashboard-brand">EchoShelf</h1>
       <p className="dashboard-tagline">
         EchoShelf brings your forgotten web back into view.

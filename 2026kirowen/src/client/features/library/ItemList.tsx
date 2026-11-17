@@ -43,7 +43,7 @@ export function ItemList({ items, loading, selectedId, onSelect }: ItemListProps
               )}
             </span>
             <span className="item-meta">
-              <span className="item-kind">{item.kind}</span>
+              <span className="item-kind" data-kind={item.kind}>{item.kind}</span>
               <time dateTime={item.savedAt}>
                 {new Date(item.savedAt).toLocaleDateString()}
               </time>
