@@ -167,3 +167,15 @@ Kiro 功能使用：任务工具更新 tasks.md 状态；execute_pwsh 写文件�
 - 滚动条细化为圆角滑块；::selection 琥珀底色。
 - 约束保持：所有 E2E 选择器与可访问名不变，reduced-motion 全量降级，对比度不变（ink #2b2118/paper #faf6ec ≈ 13:1，muted #6f6252 ≈ 5.3:1，accent #b45309 ≈ 4.6:1）。
 - 验证：tsc、eslint、build、3 E2E 全绿。
+
+## 2026-11-15 — 美化提交的更正与弹窗修复
+
+- 更正：上一条"界面美化"记录写了侧栏副标题、搜索框图标、Rediscover 卡片点亮三处改动，但它们没有进入提交 f25dfd3。原因：`git pull --rebase` 在 core.autocrlf=true 下把工作区文件改成了 CRLF，而这三处用的是多行 LF 文本的 `.Replace()`，未命中时不报错。上线校验检查的 "personal archive" 恰好也出现在一条示例文章里，所以误报为通过。
+- 本次用整文件写入补上这三处，并逐项检索确认。
+- 复核时发现并修复两个早已上线的弹窗问题：
+  1. 导入弹窗套了两层：App 外层的 Modal 已提供遮罩和 dialog，ImportModal 内部又渲染了一套，结果是双层遮罩、两个名为 "Import" 的 dialog。ImportModal 改为只渲染内容。
+  2. 关闭弹窗后焦点回不到触发按钮：Modal 在 useEffect 里读取 document.activeElement，这时子表单的 autoFocus 已把焦点移进对话框，记录到的是输入框。改为首次渲染时记录触发元素；onClose 经 ref 读取，父组件重渲染不再重跑 effect。
+- 新增 E2E：Esc 关闭弹窗、焦点回到触发按钮、导入时只有一个 dialog 和一个遮罩。
+- 环境：Playwright 浏览器缓存不在了（原因不明，本项目没有删除操作），经 npmmirror 重新安装 Chromium v1255。
+- 验证：lint、两套 typecheck、48 个单测、构建、4 条 E2E 全部通过。
+- 教训：改文件用整文件写入，或在替换未命中时报错；上线校验用唯一的类名，不用普通文案。

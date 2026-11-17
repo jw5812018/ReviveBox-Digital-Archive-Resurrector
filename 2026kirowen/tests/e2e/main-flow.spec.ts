@@ -98,3 +98,26 @@ test('demo reset does not touch the personal library', async ({ page }) => {
   await expect(page.locator('.item-row')).toHaveCount(1)
   await expect(page.locator('.item-row').first()).toContainText('Personal note')
 })
+
+test('dialogs: Esc closes, focus returns to the trigger, one dialog at a time', async ({
+  page,
+}) => {
+  await page.goto('/')
+
+  const addNote = page.getByRole('button', { name: 'Add note' })
+  await addNote.click()
+  await expect(page.getByRole('dialog', { name: 'Add note' })).toBeVisible()
+  await expect(page.getByLabel('Title')).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(addNote).toBeFocused()
+
+  // Import used to render a second backdrop and dialog inside the wrapper.
+  const importButton = page.getByRole('button', { name: 'Import', exact: true })
+  await importButton.click()
+  await expect(page.getByRole('dialog')).toHaveCount(1)
+  await expect(page.locator('.modal-backdrop')).toHaveCount(1)
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(importButton).toBeFocused()
+})

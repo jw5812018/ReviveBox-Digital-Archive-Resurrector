@@ -89,114 +89,112 @@ export function ImportModal({ mode, items, sources, onDone, onCancel }: ImportMo
   }
 
   return (
-    <div className="modal-backdrop" role="presentation">
-      <div className="modal modal-wide" role="dialog" aria-modal="true" aria-label="Import">
-        {phase.step === 'pick' && (
-          <div className="modal-form">
-            <h2>Import your collection</h2>
-            <p className="form-hint-left">
-              Bookmarks (.html), subscriptions (.opml), feeds (.xml/.rss/.atom),
-              notes (.txt/.md), or an EchoShelf backup (.json). Max 5 MiB, 1,000 records.
-            </p>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".html,.htm,.opml,.xml,.rss,.atom,.txt,.md,.json"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) void handleFile(file)
-              }}
-            />
-            <div className="form-actions">
-              <button type="button" className="btn-secondary" onClick={onCancel}>
-                Cancel
-              </button>
-            </div>
+    <>
+      {phase.step === 'pick' && (
+        <div className="modal-form">
+          <h2>Import your collection</h2>
+          <p className="form-hint-left">
+            Bookmarks (.html), subscriptions (.opml), feeds (.xml/.rss/.atom),
+            notes (.txt/.md), or an EchoShelf backup (.json). Max 5 MiB, 1,000 records.
+          </p>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".html,.htm,.opml,.xml,.rss,.atom,.txt,.md,.json"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) void handleFile(file)
+            }}
+          />
+          <div className="form-actions">
+            <button type="button" className="btn-secondary" onClick={onCancel}>
+              Cancel
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {phase.step === 'preview' && (
-          <div className="modal-form">
-            <h2>Import preview</h2>
-            <p className="form-hint-left">{phase.fileName}</p>
-            <div className="preview-stats">
-              <span><strong>{phase.plan.summary.valid}</strong> new</span>
-              <span><strong>{phase.plan.summary.duplicates}</strong> duplicates</span>
-              <span><strong>{phase.plan.summary.invalid}</strong> invalid</span>
-              {phase.plan.subscriptionCount > 0 && (
-                <span><strong>{phase.plan.subscriptionCount}</strong> subscriptions</span>
-              )}
-              {phase.plan.articleCount > 0 && (
-                <span><strong>{phase.plan.articleCount}</strong> articles</span>
-              )}
-            </div>
-            <ul className="preview-list">
-              {phase.plan.summary.details.map((d, i) => (
-                <li key={i} className={`preview-row preview-${d.status}`}>
-                  <span className="preview-title">{d.title}</span>
-                  <span className="preview-status">{d.status}</span>
-                  {d.message && <span className="preview-message">{d.message}</span>}
-                </li>
-              ))}
-            </ul>
-            <div className="form-actions">
-              <button type="button" className="btn-secondary" onClick={onCancel} disabled={busy}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn-primary"
-                disabled={busy || (phase.plan.summary.valid === 0 && phase.plan.merges.length === 0)}
-                onClick={() => void confirmPlan(phase.plan)}
-              >
-                {busy ? 'Importing…' : 'Confirm import'}
-              </button>
-            </div>
+      {phase.step === 'preview' && (
+        <div className="modal-form">
+          <h2>Import preview</h2>
+          <p className="form-hint-left">{phase.fileName}</p>
+          <div className="preview-stats">
+            <span><strong>{phase.plan.summary.valid}</strong> new</span>
+            <span><strong>{phase.plan.summary.duplicates}</strong> duplicates</span>
+            <span><strong>{phase.plan.summary.invalid}</strong> invalid</span>
+            {phase.plan.subscriptionCount > 0 && (
+              <span><strong>{phase.plan.subscriptionCount}</strong> subscriptions</span>
+            )}
+            {phase.plan.articleCount > 0 && (
+              <span><strong>{phase.plan.articleCount}</strong> articles</span>
+            )}
           </div>
-        )}
+          <ul className="preview-list">
+            {phase.plan.summary.details.map((d, i) => (
+              <li key={i} className={`preview-row preview-${d.status}`}>
+                <span className="preview-title">{d.title}</span>
+                <span className="preview-status">{d.status}</span>
+                {d.message && <span className="preview-message">{d.message}</span>}
+              </li>
+            ))}
+          </ul>
+          <div className="form-actions">
+            <button type="button" className="btn-secondary" onClick={onCancel} disabled={busy}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={busy || (phase.plan.summary.valid === 0 && phase.plan.merges.length === 0)}
+              onClick={() => void confirmPlan(phase.plan)}
+            >
+              {busy ? 'Importing…' : 'Confirm import'}
+            </button>
+          </div>
+        </div>
+      )}
 
-        {phase.step === 'restore' && (
-          <div className="modal-form">
-            <h2>Restore backup</h2>
-            <p className="form-hint-left">
-              {phase.fileName}: {phase.items.length} items, {phase.sources.length} sources.
-              Records are merged by id; existing items with the same id are replaced.
-            </p>
-            <div className="form-actions">
-              <button type="button" className="btn-secondary" onClick={onCancel} disabled={busy}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn-primary"
-                disabled={busy}
-                onClick={() => void confirmRestore(phase.items, phase.sources)}
-              >
-                {busy ? 'Restoring…' : 'Restore'}
-              </button>
-            </div>
+      {phase.step === 'restore' && (
+        <div className="modal-form">
+          <h2>Restore backup</h2>
+          <p className="form-hint-left">
+            {phase.fileName}: {phase.items.length} items, {phase.sources.length} sources.
+            Records are merged by id; existing items with the same id are replaced.
+          </p>
+          <div className="form-actions">
+            <button type="button" className="btn-secondary" onClick={onCancel} disabled={busy}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={busy}
+              onClick={() => void confirmRestore(phase.items, phase.sources)}
+            >
+              {busy ? 'Restoring…' : 'Restore'}
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {phase.step === 'error' && (
-          <div className="modal-form">
-            <h2>Import failed</h2>
-            <p className="form-error" role="alert">{phase.message}</p>
-            <div className="form-actions">
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setPhase({ step: 'pick' })}
-              >
-                Choose another file
-              </button>
-              <button type="button" className="btn-primary" onClick={onCancel}>
-                Close
-              </button>
-            </div>
+      {phase.step === 'error' && (
+        <div className="modal-form">
+          <h2>Import failed</h2>
+          <p className="form-error" role="alert">{phase.message}</p>
+          <div className="form-actions">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setPhase({ step: 'pick' })}
+            >
+              Choose another file
+            </button>
+            <button type="button" className="btn-primary" onClick={onCancel}>
+              Close
+            </button>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   )
 }

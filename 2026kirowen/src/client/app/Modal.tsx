@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 interface ModalProps {
   label: string
@@ -11,33 +11,45 @@ interface ModalProps {
  * Dialog wrapper with baseline focus management (R10 AC3, AC9):
  * - Esc closes
  * - focus moves into the dialog on open and returns to the trigger on close
+ *
+ * The trigger is captured during the first render, before a child field's
+ * autoFocus moves focus into the dialog. onClose is read through a ref so a
+ * parent re-render (new callback identity) does not re-run the effect and
+ * pull focus back to the first field.
  */
 export function Modal({ label, wide, children, onClose }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
-  const triggerRef = useRef<Element | null>(null)
+  const [trigger] = useState<Element | null>(() => document.activeElement)
+  const onCloseRef = useRef(onClose)
 
   useEffect(() => {
-    triggerRef.current = document.activeElement
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  useEffect(() => {
     const dialog = dialogRef.current
-    const focusable = dialog?.querySelector<HTMLElement>(
-      'input, textarea, button, [tabindex]:not([tabindex="-1"])',
-    )
-    focusable?.focus()
+    if (dialog && !dialog.contains(document.activeElement)) {
+      dialog
+        .querySelector<HTMLElement>(
+          'input, textarea, button, [tabindex]:not([tabindex="-1"])',
+        )
+        ?.focus()
+    }
 
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.stopPropagation()
-        onClose()
+        onCloseRef.current()
       }
     }
     document.addEventListener('keydown', handleKey)
     return () => {
       document.removeEventListener('keydown', handleKey)
-      if (triggerRef.current instanceof HTMLElement) {
-        triggerRef.current.focus()
+      if (trigger instanceof HTMLElement && trigger.isConnected) {
+        trigger.focus()
       }
     }
-  }, [onClose])
+  }, [trigger])
 
   return (
     <div className="modal-backdrop" role="presentation">

@@ -25,12 +25,25 @@ const NAV_ITEMS: Array<{ id: ViewKind; label: string }> = [
 ]
 
 /** Primary navigation with real counts plus import/export actions. */
-export function Sidebar({ view, counts, onSelect, onImport, onExport, feeds, refreshingFeedId, onRefreshFeed, onTryDemo }: SidebarProps) {
+export function Sidebar({
+  view,
+  counts,
+  onSelect,
+  onImport,
+  onExport,
+  feeds,
+  refreshingFeedId,
+  onRefreshFeed,
+  onTryDemo,
+}: SidebarProps) {
   return (
     <nav className="sidebar" aria-label="Library views">
       <div className="sidebar-brand">
         <span className="sidebar-logo" aria-hidden="true">E</span>
-        <span className="sidebar-title">EchoShelf</span>
+        <span className="sidebar-brand-text">
+          <span className="sidebar-title">EchoShelf</span>
+          <span className="sidebar-subtitle">Personal archive</span>
+        </span>
       </div>
       <ul className="sidebar-list">
         {NAV_ITEMS.map((item) => {

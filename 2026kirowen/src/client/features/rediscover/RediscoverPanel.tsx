@@ -33,7 +33,7 @@ export function RediscoverPanel({ items, rule, selectedId, onSelect }: Rediscove
           <li key={item.id}>
             <button
               type="button"
-              className={`item-row${selectedId === item.id ? ' is-selected' : ''}`}
+              className={`item-row rediscover-card${selectedId === item.id ? ' is-selected' : ''}`}
               onClick={() => onSelect(item.id)}
             >
               <span className="item-row-top">
