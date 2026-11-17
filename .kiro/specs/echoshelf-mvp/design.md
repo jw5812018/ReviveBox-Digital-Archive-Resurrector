@@ -971,6 +971,8 @@ Requirement 9 AC11-15 and Requirement 10 AC10.
 - Cold start: free hosting sleeps after 15 minutes idle and takes about a minute to wake. On refresh the client first calls `GET /api/health` with a 90-second timeout and shows "Waking the feed service…", then posts the fetch with a 30-second timeout. It never pings the service on page load (AC15).
 - Failure handling: network errors, timeouts, non-JSON bodies and missing configuration all map to `network-error` with a specific message; saved items are never touched.
 - Static serving: the server serves `dist/` only when it exists, so the same entry runs as an API-only service on the host.
+- Blueprint: `render.yaml` at the repository root defines the Render web service (`rootDir: 2026kirowen`, production dependencies only, `npm start`, health check `/api/health`, Singapore region). A build filter limits redeploys to server, shared and dependency changes.
+- Proxy hops: `TRUST_PROXY_HOPS=1`. Counting too few hops only makes rate-limit buckets coarser; counting too many would let a client choose its own address, so 1 is the safe default. After deploying, verify that a client-supplied `X-Forwarded-For` cannot change the bucket.
 ## Accessibility Design
 
 ### Keyboard Navigation

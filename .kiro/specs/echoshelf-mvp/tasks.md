@@ -457,7 +457,8 @@ EchoShelf MVP 是一个完全在浏览器本地运行的个人知识归档工具
     - _Requirements: R2.8, R2.12, R2.13, R5.11, R9.12_
 
   - [ ] 18.7 Deploy feed API and wire the Pages build
-    - 在用户选定的免费 Node 平台部署 src/server/index.ts（API-only）
+    - 仓库根目录提供 render.yaml；在 Render 中通过 New → Blueprint 部署 src/server/index.ts（API-only）
+    - 部署后验证：伪造 X-Forwarded-For 不能换取新的限频桶；两个不同出口 IP 各有独立限额
     - Pages 构建读取仓库变量 FEED_API_URL；线上实测一个 RSS 源和一个 Atom 源并记录
     - _Requirements: R9.11, R9.12, R10.10_
 

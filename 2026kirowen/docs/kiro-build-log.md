@@ -206,3 +206,13 @@ E2E 发现的问题：
 - 连续添加两个订阅时，第一个保存完成后会清空输入框，把正在输入的第二个地址抹掉。改为只在输入未变化时清空。
 
 下一步：用户选定平台并注册后部署 API（18.7），设置仓库变量 FEED_API_URL，线上实测一个 RSS 源和一个 Atom 源。
+## 2026-11-17 — 订阅服务的 Render 部署准备（18.7 进行中）
+
+- 新增仓库根目录的 render.yaml：web 服务 echoshelf-feeds，免费套餐，新加坡区，rootDir=2026kirowen，构建命令 `npm ci --omit=dev --legacy-peer-deps`，启动 `npm start`，健康检查 /api/health，Node 22，ALLOWED_ORIGINS 设为 Pages 的来源，TRUST_PROXY_HOPS=1，FEED_RATE_LIMIT=20。buildFilter 限定只有服务端、共享代码和依赖变化才触发重新部署。
+- 字段按 Render 官方 Blueprint 参考核对（runtime、rootDir、healthCheckPath、autoDeployTrigger、buildFilter、envVars）。
+- 部署前在临时目录模拟 Render 的构建和启动：只装生产依赖（94 个包，不含 dev 依赖），`npm start` 以 API-only 模式运行，日志为 "Client: not served (API only); CORS origins: 1; rate limit: 20/10 min per IP"；健康检查带正确的 CORS 头；真实 RSS 抓取成功（4.6 秒）。
+- 一次抓取返回 timeout：直连测试显示本机到 hnrss.org 的 TCP 连接用了 3.3 秒、总计 4.9 秒，8 秒预算偶尔会被占满；同一服务重试成功。判断为本机网络波动，没有改动超时限制。Render 新加坡机房的实际耗时部署后再测。
+- 代理跳数的取舍：TRUST_PROXY_HOPS 填少了只会让限频桶变粗（共享出口的用户共用一个桶），填多了会让客户端能自己选择地址，所以取 1。Render 前面还有 Cloudflare，实际应取几跳无法从文档确认，部署后用实测验证：伪造 X-Forwarded-For 不能换取新的限频桶。
+- README 增加 Render 部署步骤；design.md、tasks.md 同步。
+
+下一步：用户在 Render 中通过 New → Blueprint 部署，告知服务地址；设置仓库变量 FEED_API_URL，重跑 Pages 工作流；线上实测一个 RSS 源和一个 Atom 源，并做限频验证。

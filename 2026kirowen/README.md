@@ -95,6 +95,14 @@ absent.
 | `FEED_RATE_LIMIT` | API service | Fetches per client IP per 10 minutes (default 20) |
 | `PORT` | API service | Listen port (set by most hosts) |
 
+The repository root contains a Render Blueprint (`render.yaml`) for the feed
+service. To deploy it: in the Render dashboard choose **New → Blueprint**,
+select this repository, and apply. The Blueprint installs production
+dependencies only, runs `npm start` API-only, and sets `ALLOWED_ORIGINS` to the
+GitHub Pages origin. Then set the repository variable `FEED_API_URL` (Settings →
+Secrets and variables → Actions → Variables) to the service URL and re-run the
+Pages workflow.
+
 Free hosting plans sleep when idle. The first refresh after a pause shows
 "Waking the feed service…" and can take about a minute. The app never pings
 the service on page load; it only calls it when you press Refresh.
