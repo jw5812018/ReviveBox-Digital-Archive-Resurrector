@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Item, Source } from '@shared/models/types'
 import { addItem, getAllItems, updateItem } from '@client/storage/itemService'
-import { getAllSources } from '@client/storage/sourceService'
+import { addSource, getAllSources } from '@client/storage/sourceService'
 import type { LibraryMode } from '@client/storage/db'
 import { normalizeUrl } from '@shared/urls/normalizeUrl'
+import { checkNewFeedUrl } from '@shared/urls/feedUrls'
 import { buildBackup } from '@shared/import/backup'
 import { Layout } from './Layout'
 import { Modal } from './Modal'
@@ -17,6 +18,7 @@ import { ItemDetail } from '@client/features/library/ItemDetail'
 import { RediscoverPanel } from '@client/features/rediscover/RediscoverPanel'
 import { selectRediscover } from '@client/features/rediscover/rediscover'
 import { refreshFeed } from '@client/features/sources/feedRefresh'
+import type { FeedServiceStage } from '@client/features/sources/feedApi'
 import { AddNoteForm } from '@client/features/library/AddNoteForm'
 import { AddBookmarkForm } from '@client/features/library/AddBookmarkForm'
 import { ImportModal } from '@client/features/import/ImportModal'
@@ -43,6 +45,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [refreshingFeedId, setRefreshingFeedId] = useState<string | null>(null)
+  const [refreshStage, setRefreshStage] = useState<FeedServiceStage | null>(null)
   const lastRefreshAt = useRef<Map<string, number>>(new Map())
 
   const reload = useCallback(async () => {
@@ -226,11 +229,37 @@ export default function App() {
     lastRefreshAt.current.set(source.id, now)
     setRefreshingFeedId(source.id)
     try {
-      await refreshFeed(source, mode, items)
+      await refreshFeed(source, mode, items, setRefreshStage)
     } finally {
       setRefreshingFeedId(null)
+      setRefreshStage(null)
       await reload()
     }
+  }
+
+  const handleAddFeed = async (raw: string): Promise<string | null> => {
+    const existing = sources
+      .filter((s) => s.kind === 'feed' && s.feedUrl != null)
+      .map((s) => s.feedUrl as string)
+    const check = checkNewFeedUrl(raw, existing)
+    if (!check.ok) return check.message
+    try {
+      await addSource(
+        {
+          id: crypto.randomUUID(),
+          kind: 'feed',
+          name: new URL(check.url).hostname,
+          feedUrl: check.url,
+          lastFetchedAt: null,
+          lastFetchStatus: null,
+        },
+        mode,
+      )
+    } catch {
+      return 'Saving the subscription in this browser failed.'
+    }
+    await reload()
+    return null
   }
 
   const handleExport = async () => {
@@ -262,7 +291,9 @@ export default function App() {
             onExport={() => void handleExport()}
             feeds={sources.filter((s) => s.kind === 'feed' && s.feedUrl != null)}
             refreshingFeedId={refreshingFeedId}
+            refreshStage={refreshStage}
             onRefreshFeed={(source) => void handleRefreshFeed(source)}
+            onAddFeed={handleAddFeed}
             onTryDemo={() => void handleTryDemo()}
           />
         }
@@ -355,8 +386,7 @@ export default function App() {
         <Modal label="Import" wide onClose={() => setModal(null)}>
           <ImportModal
             mode={mode}
-            items={items}
-            sources={sources}
+            onImported={() => void reload()}
             onDone={() => {
               setModal(null)
               void reload()

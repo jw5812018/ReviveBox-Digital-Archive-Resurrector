@@ -551,6 +551,19 @@ function ImportPreview({
 }
 ```
 
+### Step 6: Folder Batch Import (files over 1,000 records)
+
+Requirement 2 AC8, AC11-13 and Requirement 5 AC10. The 1,000-record cap stays per batch; large bookmark exports are split by folder instead of being rejected.
+
+1. `analyzeBookmarkFile(html)` parses once and returns every outcome (valid and invalid) with its folder path, plus a folder tree. Each node reports `total` (all records in the subtree) and `direct` (records directly inside the folder). Records outside any folder belong to the root node.
+2. If `total` of the whole file is at most 1,000, the normal preview runs unchanged.
+3. Otherwise the import dialog shows the tree. A selection is a set of `{ path, scope }` entries: `scope: 'subtree'` selects a folder with everything below it; `scope: 'direct'` selects only the records directly inside it, which lets users split a folder whose subtree is too large.
+4. A folder whose subtree exceeds 1,000 cannot be selected as a subtree; its children and its direct records can. If `direct` alone exceeds 1,000, that part cannot be selected at all and the dialog says so (AC11).
+5. `planImport(fileName, content, items, sources, now, { folders })` filters outcomes to the selection before dedupe, so the existing cap check, normalization and merge rules apply to each batch unchanged (AC13). Overlapping entries (a subtree plus one of its descendants) are counted once.
+6. After a batch is confirmed the dialog keeps the parsed file in memory, marks the imported folders for this session, and offers "Choose more folders" without re-selecting the file (AC12).
+7. Each batch creates its own `bookmark-file` source named `<file> (<folder names>)`, so the source list shows which folders came from which batch.
+
+Invalid records carry a readable English message from `describeImportError(type)`; the error code stays in `errorType` for tests and is not shown to users (Requirement 5 AC11).
 ## Search & Filter Design
 
 ### Search Index Structure
@@ -946,6 +959,18 @@ class FeedFetcher {
 }
 ```
 
+### Deployment: Static Client + Hosted Feed API
+
+Requirement 9 AC11-15 and Requirement 10 AC10.
+
+- The client is a static build on GitHub Pages. Every feature except live feed refresh works there.
+- Live refresh calls a separately hosted Node service (the same `src/server/index.ts`). The client reads its base URL from the build variable `VITE_FEED_API_URL`; when unset it calls same-origin `/api`, which is the local dev and `npm start` setup.
+- Hosting choice: a long-running Node web service (Render free plan) rather than serverless functions. A free Render service runs one instance, so the in-memory concurrency limit (5) and rate limiter apply to all traffic, and the pinned-address HTTPS client needs real Node `https` and `dns`. Edge runtimes that only offer `fetch` cannot pin the validated address and are excluded.
+- CORS: only origins listed in `ALLOWED_ORIGINS` (comma separated, exact match) receive `Access-Control-Allow-Origin`; preflight `OPTIONS` is answered for those origins only. No credentials are used.
+- Rate limit: fixed 10-minute window per client IP, 20 fetches by default (`FEED_RATE_LIMIT`); over the limit returns 429 with `retryAfterSeconds`. Client IP comes from `req.ip` with `TRUST_PROXY_HOPS` (default 0, 1 behind the host's proxy) so a client cannot spoof `X-Forwarded-For`. Requests waiting for a concurrency slot are capped at 20; beyond that the server returns 503.
+- Cold start: free hosting sleeps after 15 minutes idle and takes about a minute to wake. On refresh the client first calls `GET /api/health` with a 90-second timeout and shows "Waking the feed service…", then posts the fetch with a 30-second timeout. It never pings the service on page load (AC15).
+- Failure handling: network errors, timeouts, non-JSON bodies and missing configuration all map to `network-error` with a specific message; saved items are never touched.
+- Static serving: the server serves `dist/` only when it exists, so the same entry runs as an API-only service on the host.
 ## Accessibility Design
 
 ### Keyboard Navigation

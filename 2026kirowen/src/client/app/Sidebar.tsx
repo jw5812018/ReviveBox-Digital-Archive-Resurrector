@@ -1,5 +1,6 @@
 import type { ItemKind, Source } from '@shared/models/types'
 import { Subscriptions } from '@client/features/sources/Subscriptions'
+import type { FeedServiceStage } from '@client/features/sources/feedApi'
 
 export type ViewKind = 'all' | ItemKind | 'starred' | 'rediscover'
 
@@ -11,7 +12,9 @@ interface SidebarProps {
   onExport: () => void
   feeds: Source[]
   refreshingFeedId: string | null
+  refreshStage: FeedServiceStage | null
   onRefreshFeed: (source: Source) => void
+  onAddFeed: (url: string) => Promise<string | null>
   onTryDemo: () => void
 }
 
@@ -33,7 +36,9 @@ export function Sidebar({
   onExport,
   feeds,
   refreshingFeedId,
+  refreshStage,
   onRefreshFeed,
+  onAddFeed,
   onTryDemo,
 }: SidebarProps) {
   return (
@@ -66,7 +71,9 @@ export function Sidebar({
       <Subscriptions
         feeds={feeds}
         refreshingId={refreshingFeedId}
+        refreshStage={refreshStage}
         onRefresh={onRefreshFeed}
+        onAddFeed={onAddFeed}
       />
       <div className="sidebar-footer">
         <button type="button" className="btn-tertiary btn-block" onClick={onTryDemo}>

@@ -47,7 +47,7 @@ test('demo flow: import, dedupe preview, search, star, reload, export', async ({
 
   // Reload: demo mode and the star persist.
   await page.reload()
-  await page.getByRole('button', { name: 'Starred' }).click()
+  await page.getByRole('button', { name: /^Starred \d+$/ }).click()
   await expect(page.locator('.item-row')).toHaveCount(11)
 
   // Export produces a valid v1 backup with all data.
@@ -120,4 +120,102 @@ test('dialogs: Esc closes, focus returns to the trigger, one dialog at a time', 
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(importButton).toBeFocused()
+})
+
+function bigBookmarkFile() {
+  const section = (name: string, count: number) =>
+    `<DT><H3>${name}</H3>\n<DL><p>\n` +
+    Array.from(
+      { length: count },
+      (_, i) =>
+        `<DT><A HREF="https://example.org/${name.toLowerCase()}/${i}" ADD_DATE="1718000000">${name} ${i}</A>`,
+    ).join('\n') +
+    '\n</DL><p>'
+  const html = `<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<DL><p>\n${section('Alpha', 700)}\n${section('Beta', 500)}\n</DL><p>`
+  return { name: 'big-bookmarks.html', mimeType: 'text/html', buffer: Buffer.from(html) }
+}
+
+test('large bookmark file: import folder by folder, re-import creates nothing', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const importButton = page.getByRole('button', { name: 'Import', exact: true })
+  const preview = page.locator('.preview-stats')
+
+  await importButton.click()
+  await page.locator('input[type="file"]').setInputFiles(bigBookmarkFile())
+  await expect(page.getByRole('heading', { name: 'Choose folders to import' })).toBeVisible()
+  await expect(page.getByText('big-bookmarks.html has 1,200 bookmarks')).toBeVisible()
+
+  await page.getByRole('checkbox', { name: /^Alpha/ }).check()
+  await expect(page.getByText('700 of 1,000 selected')).toBeVisible()
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await expect(preview).toContainText('700 new')
+  await page.getByRole('button', { name: 'Confirm import' }).click()
+  await expect(page.getByText('700 new, 0 already in your library.')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Choose more folders' }).click()
+  await expect(page.getByText('500 not imported yet.')).toBeVisible()
+  await page.getByRole('checkbox', { name: /^Beta/ }).check()
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await expect(preview).toContainText('500 new')
+  await page.getByRole('button', { name: 'Confirm import' }).click()
+  await page.getByRole('button', { name: 'Done' }).click()
+  await expect(page.getByRole('button', { name: 'All items 1200' })).toBeVisible()
+
+  // Importing an already imported folder again only finds duplicates.
+  await importButton.click()
+  await page.locator('input[type="file"]').setInputFiles(bigBookmarkFile())
+  await page.getByRole('checkbox', { name: /^Alpha/ }).check()
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await expect(preview).toContainText('0 new')
+  await expect(preview).toContainText('700 duplicates')
+})
+
+test('feeds: add by URL, sample feeds are not fetchable, service failures are shown', async ({
+  page,
+}) => {
+  // The browser never reaches the internet here: fetch calls are fulfilled locally.
+  await page.route('**/api/feeds/fetch', async (route) => {
+    const { url } = route.request().postDataJSON() as { url: string }
+    if (url.includes('rss-a.')) {
+      await route.fulfill({ status: 502, contentType: 'text/html', body: '<html>Bad gateway</html>' })
+      return
+    }
+    await route.fulfill({
+      status: 429,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: false, code: 'rate-limited', retryAfterSeconds: 600 }),
+    })
+  })
+  await page.goto('/')
+
+  const feedInput = page.getByLabel('Follow a feed')
+  const addFeed = page.getByRole('button', { name: 'Add', exact: true })
+  await feedInput.fill('http://rss-a.echoshelf-e2e.dev/feed.xml')
+  await addFeed.click()
+  await expect(page.getByText('Feed addresses must use https.')).toBeVisible()
+
+  await feedInput.fill('https://rss-a.echoshelf-e2e.dev/feed.xml')
+  await addFeed.click()
+  await expect(page.getByRole('button', { name: 'Refresh rss-a.echoshelf-e2e.dev' })).toBeVisible()
+  await feedInput.fill('https://rss-b.echoshelf-e2e.dev/feed.xml')
+  await addFeed.click()
+  await expect(page.getByRole('button', { name: 'Refresh rss-b.echoshelf-e2e.dev' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Refresh rss-a.echoshelf-e2e.dev' }).click()
+  await expect(
+    page.getByText('Network error — The feed service returned an unexpected response (HTTP 502).'),
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Refresh rss-b.echoshelf-e2e.dev' }).click()
+  await expect(
+    page.getByText('Rate limited — Too many refreshes from this network. Try again in about 10 min.'),
+  ).toBeVisible()
+
+  // Sample OPML feeds on example domains are labelled and have no Refresh button.
+  await page.getByRole('button', { name: 'Import', exact: true }).click()
+  await page.locator('input[type="file"]').setInputFiles('public/demo/sample-subscriptions.opml')
+  await page.getByRole('button', { name: 'Confirm import' }).click()
+  await expect(page.getByText('Sample feed (example domain, not fetchable)')).toHaveCount(3)
+  await expect(page.getByRole('button', { name: /^Refresh / })).toHaveCount(2)
 })

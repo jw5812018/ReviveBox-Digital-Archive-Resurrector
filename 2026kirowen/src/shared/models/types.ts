@@ -24,6 +24,12 @@ export type FeedFetchState =
   | 'http-error'
   | 'invalid-format'
   | 'redirect-limit'
+  | 'too-large'
+  /** Rejected by the fetch safety rules (non-public target, non-HTTPS, credentials). */
+  | 'blocked'
+  | 'rate-limited'
+  /** Fetched, but writing the articles to this browser failed; nothing changed. */
+  | 'save-failed'
   | 'network-error'
 
 export interface Item {

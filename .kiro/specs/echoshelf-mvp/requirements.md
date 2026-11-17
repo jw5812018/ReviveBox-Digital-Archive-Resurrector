@@ -50,9 +50,12 @@ EchoShelf 第一版聚焦于核心功能：导入现有收藏、管理个人知�
 5. WHERE 书签包含文件夹路径（使用正斜杠 / 作为分隔符），THE Parser SHALL 将直接父文件夹作为初始标签添加到 tags 字段，最多添加 100 个标签
 6. IF 书签缺少有效标题（长度为 0 或超过 255 字符）或有效 URL（非 http/https 协议或长度超过 2048 字符），THE Parser SHALL 标记为无效记录，并从以下错误类型中选择匹配的错误：MissingTitle、MissingUrl、InvalidUrlProtocol、TitleTooLong、UrlTooLong
 7. WHEN 书签文件大小超过 5 MiB，THE Importer SHALL 拒绝导入并说明文件过大
-8. WHEN 书签文件包含超过 1000 条记录，THE Importer SHALL 拒绝导入并说明记录数过多
+8. WHEN 书签文件包含超过 1,000 条记录，THE Importer SHALL 不直接拒绝，而是展示该文件的文件夹树（每个文件夹显示其全部记录数和直接位于该文件夹内的记录数），由用户选择本批要导入的文件夹；所选记录合计不超过 1,000 条时才允许进入预览
 9. IF 书签 URL 协议属于以下列表（javascript:、data:、file:、ftp:、mailto:、tel:、ssh:），THE Parser SHALL 标记为无效记录并返回 InvalidUrlProtocol 错误
 10. WHEN 书签导入流程开始，THE System SHALL 显示导入预览界面，展示每条记录的标题、URL、标签列表和解析状态（有效/无效及错误类型），预览会话超时时间为 300 秒
+11. IF 某个文件夹直接包含的记录超过 1,000 条（无法再按子文件夹拆分），THEN THE Importer SHALL 禁止选择这部分记录并说明原因，建议用户在浏览器中拆分该文件夹后重新导出
+12. WHEN 用户确认一批导入，THE System SHALL 允许在不重新选择文件的情况下继续选择同一文件中的其他文件夹，并标出本次会话中已导入的文件夹
+13. WHEN 分批导入同一文件，THE System SHALL 对每批执行与普通导入相同的规范化与去重规则；再次选择已导入的文件夹只产生重复记录（合并来源与标签），不新建条目
 
 ### Requirement 3: 导入订阅与文章
 
@@ -105,7 +108,8 @@ EchoShelf 第一版聚焦于核心功能：导入现有收藏、管理个人知�
 7. WHERE 用户取消导入，THE System SHALL 不修改任何数据库内容
 8. WHEN 同一文件重复导入，THE System SHALL 通过规范化 URL 识别重复条目，并仅将新的来源信息合并到现有 Item 的 sources 数组
 9. WHERE 条目缺失 url 字段但标题和内容（笔记正文或文章摘要）完全相同，THE System SHALL 计算内容指纹（SHA-256 哈希，去除首尾空白字符后进行 UTF-8 编码），如果指纹匹配则标记为重复记录
-10. WHEN 单次导入处理超过 1000 条记录，THE Importer SHALL 拒绝处理并说明限制
+10. WHEN 单批待处理记录超过 1,000 条，THE Importer SHALL 不允许确认写入并说明限制；书签文件按 Requirement 2 AC8 分批导入，OPML 与 RSS/Atom 文件超过上限时拒绝导入
+11. WHERE 预览中存在无效记录，THE System SHALL 为每条显示一句可读的英文原因（例如 "Only http and https links can be imported."），内部错误代码不直接展示给用户
 
 ### Requirement 6: 搜索、筛选与阅读
 
@@ -174,6 +178,13 @@ EchoShelf 第一版聚焦于核心功能：导入现有收藏、管理个人知�
 8. WHERE 多个订阅同时刷新，THE System SHALL 限制并发请求数不超过 5 个，超出的请求排队等待
 9. WHERE 用户多次点击同一订阅的刷新按钮，THE System SHALL 防止重复请求（在 5 秒内不重复发起）
 10. IF 数据库写入失败，THE System SHALL 撤销所有更改并显示可见的错误提示
+11. WHERE 前端与订阅服务部署在不同域名，THE Server SHALL 只对配置的来源（环境变量 ALLOWED_ORIGINS）返回 CORS 允许头，其他来源的跨域请求不予放行
+12. THE Server SHALL 按客户端 IP 限制请求频率（默认每 10 分钟 20 次），超过时返回 HTTP 429 并说明多久后可重试；等待并发名额的请求超过 20 个时返回 HTTP 503
+13. WHILE 订阅服务从休眠中唤醒（免费托管闲置后的首个请求），THE System SHALL 显示"正在唤醒订阅服务"的状态并最长等待 90 秒，而不是立即报错
+14. IF 订阅服务未配置、不可用或返回非 JSON 内容，THEN THE System SHALL 将该订阅标记为 network-error 并显示具体原因，已保存的条目保持不变
+15. THE System SHALL 只在用户点击刷新时请求订阅服务，页面加载时不发送预热或探测请求
+16. WHEN 用户在订阅区输入一个订阅地址并添加，THE System SHALL 先校验（仅 https、长度不超过 2,048 字符、不与已有订阅重复）再创建订阅来源，添加时不立即抓取，由用户手动刷新
+17. WHERE 订阅地址属于保留示例域名（example.org、example.com、example.net，或以 .example、.test、.invalid、.localhost 结尾），THE System SHALL 将其标注为 "Sample feed" 且不提供刷新按钮
 
 ### Requirement 10: 可访问、可演示、可部署
 
@@ -190,7 +201,7 @@ EchoShelf 第一版聚焦于核心功能：导入现有收藏、管理个人知�
 7. IF 发生网络错误或服务器响应错误（HTTP 4xx/5xx），THEN THE System SHALL 显示错误卡片，包含错误简述、错误代码上下文（如适用），以及"重试"或"返回上一页"的明确操作按钮
 8. IF 返回数据为空（列表长度为 0 或详情数据为空对象），THEN THE System SHALL 显示空状态卡片，包含无数据的明确说明、图标和一条建议性操作引导
 9. IF 用户使用屏幕阅读器（检测到辅助技术），THEN THE System SHALL 为所有交互控件提供 aria-label 或 aria-labelledby 属性，为动态状态变化提供 aria-live="polite" 区域，并在状态变化时更新 aria-pressed、aria-expanded 等状态属性
-10. WHERE 生产构建输出为静态文件（HTML、CSS、JS、资源文件），THEN THE System SHALL 在支持静态文件服务的 Web 服务器（如 Nginx、Apache 或静态文件服务器）上通过根路径访问运行
+10. WHERE 只部署静态前端（如 GitHub Pages），THE System SHALL 保持除在线订阅刷新以外的全部功能可用；在线订阅刷新需要单独部署的 Node 订阅服务（POST /api/feeds/fetch），前端通过构建变量 VITE_FEED_API_URL 指向该服务
 
 ## Out of Scope
 

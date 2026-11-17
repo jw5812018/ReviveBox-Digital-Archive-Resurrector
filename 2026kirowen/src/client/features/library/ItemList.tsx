@@ -36,10 +36,16 @@ export function ItemList({ items, loading, selectedId, onSelect }: ItemListProps
                 <span className="item-sample">Sample</span>
               )}
               {item.starred && (
-                <span className="item-flag" title="Starred" aria-label="Starred">★</span>
+                <>
+                  <span className="item-flag" title="Starred" aria-hidden="true">★</span>
+                  <span className="sr-only">Starred</span>
+                </>
               )}
               {item.readAt == null && (
-                <span className="item-unread" aria-label="Unread" />
+                <>
+                  <span className="item-unread" aria-hidden="true" />
+                  <span className="sr-only">Unread</span>
+                </>
               )}
             </span>
             <span className="item-meta">

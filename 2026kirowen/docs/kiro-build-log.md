@@ -180,3 +180,29 @@ Kiro 功能使用：任务工具更新 tasks.md 状态；execute_pwsh 写文件�
 - 环境：Playwright 浏览器缓存不在了（原因不明，本项目没有删除操作），经 npmmirror 重新安装 Chromium v1255。
 - 验证：lint、两套 typecheck、48 个单测、构建、4 条 E2E 全部通过。
 - 教训：改文件用整文件写入，或在替换未命中时报错；上线校验用唯一的类名，不用普通文案。
+## 2026-11-17 — 书签分批导入与在线订阅服务的准备
+
+对应任务：18.1–18.6。18.7（部署）等用户选定平台后再做。
+
+规格先行：先改 requirements（R2 AC8、AC11–13；R5 AC10–11；R9 AC11–17；R10 AC10）、design（新增 Step 6 分批导入、Deployment 两节）和 tasks（新增任务组 18）。顺带更正两处任务状态：10.3 改回未完成，因为标签筛选和未读筛选的界面还没做；11.4 改为完成。
+
+实际修改：
+- 分批导入：bookmarkFolders.ts 构建文件夹树（每个文件夹的全部记录数和直接记录数），选择项为 {path, scope}，重叠只计一次，并能按文件夹统计已导入数量；planImport 新增 folders 选项；FolderPicker.tsx 提供勾选、已选合计、过大文件夹不可选并说明原因、已导入标记；ImportModal 新增文件夹选择和"本批完成"两个阶段，每批都重新读取数据库再去重。
+- 可读错误：errorMessages.ts。预览显示英文原因，错误码只保留在 errorType 字段。
+- 订阅客户端 feedApi.ts：读取 VITE_FEED_API_URL；远程服务先轮询 /api/health，最长 90 秒，期间显示唤醒状态；抓取请求 30 秒超时；非 JSON、429、服务未配置都有明确状态。订阅区可按地址添加订阅；保留示例域名的订阅标注 Sample feed，不显示刷新按钮；状态新增 too-large、blocked、rate-limited、save-failed。
+- 修复：线上 Pages 版点 Refresh 时，非 JSON 响应会让 response.json() 抛出未处理的异常，界面没有任何提示。现在记录为 network-error 并显示原因。
+- 服务端：ALLOWED_ORIGINS 精确匹配的 CORS 与预检；既不在白名单也不同源的请求返回 403；每个 IP 每 10 分钟 20 次（429 带 retryAfterSeconds）；等待并发名额超过 20 个返回 503；JSON 解析错误返回 JSON；dist/ 不存在时只提供 API。
+- 无障碍：列表里的星标和未读标记原来把 aria-label 放在 span 上（generic 元素不允许），改为 aria-hidden 的图形加屏幕阅读器文字。
+- Pages 工作流：构建时读取仓库变量 FEED_API_URL。
+
+测试与验证：
+- 单元测试 12 个文件 71 例，新增 bookmarkFolders、errorMessages、rateLimit、feedUrls。新增属性测试：任意拆分方式下，按文件夹分批导入创建的条目集合与一次性导入相同（100 例）。
+- E2E 6 条，新增两条：1,200 条书签分两批导入，再导入已导入的文件夹只出现重复；订阅按地址添加、示例订阅不可刷新、502 和 429 的错误显示（请求在浏览器内被拦截替换，不访问外网）。
+- 本地 API 实测（ALLOWED_ORIGINS 设为 Pages 地址，FEED_RATE_LIMIT=3）：允许的来源预检返回 204 并带 CORS 头；其他来源预检 403、POST 403；真实 RSS（hnrss.org）200；私网 IP 400 blocked-target；坏 JSON 400 invalid-request；第 3 次计数的请求 200，第 4 次 429（retryAfterSeconds 596）。
+- lint、两套 typecheck、build 全部通过。
+
+E2E 发现的问题：
+- "Starred" 按钮定位命中 12 个元素，条目按钮的名字里也含 Starred。之前同一写法能通过，可能与重新安装的 Chromium 版本有关，未确认。原写法本身不规范，已按上面的方式修正，测试改为精确匹配。
+- 连续添加两个订阅时，第一个保存完成后会清空输入框，把正在输入的第二个地址抹掉。改为只在输入未变化时清空。
+
+下一步：用户选定平台并注册后部署 API（18.7），设置仓库变量 FEED_API_URL，线上实测一个 RSS 源和一个 Atom 源。

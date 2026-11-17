@@ -563,6 +563,48 @@
         "chatSessionId": "sess_d37c3a75-dcea-49db-853c-44785b6b5608",
         "timestamp": 1794713888050
       }
+    ],
+    "18.1 Folder tree and selection logic for bookmark files": [
+      {
+        "executionId": "104fa62f-bf20-46c7-ac1b-fc7fc8d9acf6",
+        "chatSessionId": "sess_d37c3a75-dcea-49db-853c-44785b6b5608",
+        "timestamp": 1794919114485
+      }
+    ],
+    "18.2 Folder picker UI with running total and session state": [
+      {
+        "executionId": "104fa62f-bf20-46c7-ac1b-fc7fc8d9acf6",
+        "chatSessionId": "sess_d37c3a75-dcea-49db-853c-44785b6b5608",
+        "timestamp": 1794919114971
+      }
+    ],
+    "18.3 Readable import error messages": [
+      {
+        "executionId": "104fa62f-bf20-46c7-ac1b-fc7fc8d9acf6",
+        "chatSessionId": "sess_d37c3a75-dcea-49db-853c-44785b6b5608",
+        "timestamp": 1794919115705
+      }
+    ],
+    "18.4 Configurable feed API URL and resilient client": [
+      {
+        "executionId": "104fa62f-bf20-46c7-ac1b-fc7fc8d9acf6",
+        "chatSessionId": "sess_d37c3a75-dcea-49db-853c-44785b6b5608",
+        "timestamp": 1794919125388
+      }
+    ],
+    "18.5 Server CORS allowlist, per-IP rate limit and queue cap": [
+      {
+        "executionId": "104fa62f-bf20-46c7-ac1b-fc7fc8d9acf6",
+        "chatSessionId": "sess_d37c3a75-dcea-49db-853c-44785b6b5608",
+        "timestamp": 1794919125684
+      }
+    ],
+    "18.6 Tests for batch import and API limits": [
+      {
+        "executionId": "104fa62f-bf20-46c7-ac1b-fc7fc8d9acf6",
+        "chatSessionId": "sess_d37c3a75-dcea-49db-853c-44785b6b5608",
+        "timestamp": 1794919125785
+      }
     ]
   }
 }

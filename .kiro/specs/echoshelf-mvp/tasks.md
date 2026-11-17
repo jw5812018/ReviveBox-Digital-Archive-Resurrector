@@ -227,7 +227,8 @@ EchoShelf MVP 是一个完全在浏览器本地运行的个人知识归档工具
     - 响应时间 < 2 秒
     - _Requirements: R6.1_
   
-  - [x] 10.3 Implement filter logic
+  - [ ] 10.3 Implement filter logic
+    - 现状：类型与收藏筛选已实现；标签筛选、未读筛选与排序的界面尚未实现
     - 类型筛选（全部/书签/文章/笔记）
     - 标签筛选（OR 逻辑）
     - 收藏筛选（starred: true/false）
@@ -257,7 +258,7 @@ EchoShelf MVP 是一个完全在浏览器本地运行的个人知识归档工具
     - ≥30 天显示月数，否则显示天数
     - _Requirements: R8.3_
   
-  - [ ] 11.4 Integrate Rediscover with item list
+  - [x] 11.4 Integrate Rediscover with item list
     - 点击条目标记为已读
     - 5 秒内从列表移除
     - _Requirements: R8.5, R8.9_
@@ -418,6 +419,48 @@ EchoShelf MVP 是一个完全在浏览器本地运行的个人知识归档工具
     - Git pre-commit hook（lint-staged）
     - _Requirements: Code Quality_
 
+- [ ] 18. Folder Batch Import & Hosted Feed API
+  - [x] 18.1 Folder tree and selection logic for bookmark files
+    - analyzeBookmarkFile：一次解析，返回全部记录（含无效记录）及其文件夹路径和文件夹树（total / direct 计数）
+    - 选择项 { path, scope: subtree | direct }，重叠选择只计一次；超过 1,000 的子树不可整体选择，direct 超过 1,000 时说明原因
+    - planImport 接受 folders 选项，先按选择过滤再执行原有去重与上限检查
+    - _Requirements: R2.8, R2.11, R2.13, R5.10_
+
+  - [x] 18.2 Folder picker UI with running total and session state
+    - 导入弹窗在书签文件超过 1,000 条时显示文件夹树、勾选框与已选合计
+    - 确认一批后可继续选择同一文件的其他文件夹，已导入的文件夹做标记
+    - 每批来源命名为 <file> (<folders>)
+    - _Requirements: R2.8, R2.12_
+
+  - [x] 18.3 Readable import error messages
+    - describeImportError 把错误码映射为英文说明，预览只显示说明
+    - _Requirements: R5.11_
+
+  - [x] 18.4 Configurable feed API URL and resilient client
+    - VITE_FEED_API_URL 构建变量；未配置时调用同源 /api
+    - 刷新前 GET /api/health（90 秒超时，显示唤醒状态），抓取请求 30 秒超时
+    - 网络错误、超时、非 JSON 响应、未配置都记录为 network-error 并显示原因
+    - 页面加载时不发送预热请求
+    - 订阅区可按地址添加订阅；保留示例域名的订阅标注 Sample feed，不显示刷新按钮
+    - 状态区分超时、HTTP 错误、格式无效、响应过大、安全规则拦截、限频与网络错误
+    - _Requirements: R9.13, R9.14, R9.15, R9.16, R9.17, R10.10_
+
+  - [x] 18.5 Server CORS allowlist, per-IP rate limit and queue cap
+    - ALLOWED_ORIGINS 精确匹配；只对允许的来源响应预检
+    - 每 IP 每 10 分钟 20 次（FEED_RATE_LIMIT），超出返回 429 与 retryAfterSeconds；TRUST_PROXY_HOPS 控制代理层数
+    - 等待并发名额的请求超过 20 个返回 503；dist/ 不存在时不提供静态文件
+    - _Requirements: R9.11, R9.12_
+
+  - [x] 18.6 Tests for batch import and API limits
+    - 单元测试：文件夹树计数、选择过滤、planImport 分批、错误说明、限频器
+    - E2E：1,200 条书签文件分两批导入，第二批后共 1,200 条，重复选择不新建
+    - _Requirements: R2.8, R2.12, R2.13, R5.11, R9.12_
+
+  - [ ] 18.7 Deploy feed API and wire the Pages build
+    - 在用户选定的免费 Node 平台部署 src/server/index.ts（API-only）
+    - Pages 构建读取仓库变量 FEED_API_URL；线上实测一个 RSS 源和一个 Atom 源并记录
+    - _Requirements: R9.11, R9.12, R10.10_
+
 ## Checkpoints
 
 - [ ] Checkpoint 1 - Core Infrastructure
@@ -485,6 +528,22 @@ EchoShelf MVP 是一个完全在浏览器本地运行的个人知识归档工具
     {
       "id": 8,
       "tasks": ["15.5", "16.1", "16.2", "16.3", "17.1", "17.2", "17.3"]
+    },
+    {
+      "id": 9,
+      "tasks": ["18.1", "18.3", "18.5"]
+    },
+    {
+      "id": 10,
+      "tasks": ["18.2", "18.4"]
+    },
+    {
+      "id": 11,
+      "tasks": ["18.6"]
+    },
+    {
+      "id": 12,
+      "tasks": ["18.7"]
     }
   ]
 }

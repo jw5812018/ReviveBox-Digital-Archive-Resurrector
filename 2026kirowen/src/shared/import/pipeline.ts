@@ -2,6 +2,8 @@ import type { Item, Source, ImportDetail } from '@shared/models/types'
 import { ImportErrorType } from '@shared/models/types'
 import { normalizeUrl } from '@shared/urls/normalizeUrl'
 import { parseBookmarkHtml } from './bookmarkParser'
+import { selectOutcomes, describeSelection, type FolderSelection } from './bookmarkFolders'
+import { describeImportError } from './errorMessages'
 import { parseOpml } from './opmlParser'
 import { parseFeed } from './feedParser'
 import { parseTextFile } from './textParser'
@@ -30,6 +32,11 @@ export interface ImportPlan {
 export type PlanResult =
   | { ok: true; plan: ImportPlan }
   | { ok: false; error: ImportErrorType; message: string }
+
+export interface PlanOptions {
+  /** Bookmark files only: import just these folders (Requirement 2 AC8). */
+  folders?: FolderSelection[]
+}
 
 interface Ctx {
   existingItems: Item[]
@@ -132,8 +139,10 @@ export async function planImport(
   existingItems: Item[],
   existingSources: Source[],
   now: Date = new Date(),
+  options: PlanOptions = {},
 ): Promise<PlanResult> {
   const lower = fileName.toLowerCase()
+  const folders = options.folders
   const ctx: Ctx = {
     existingItems,
     existingSources,
@@ -149,7 +158,9 @@ export async function planImport(
       return {
         ok: false,
         error: ImportErrorType.TooManyRecords,
-        message: `This file contains more than ${MAX_IMPORT_RECORDS} records. Split it into smaller files.`,
+        message: folders
+          ? `This batch has more than ${MAX_IMPORT_RECORDS.toLocaleString('en-US')} records. Choose fewer folders.`
+          : `This file has more than ${MAX_IMPORT_RECORDS.toLocaleString('en-US')} records. Split it into smaller files.`,
       }
     }
     const articleCount = ctx.createItems.filter((i) => i.kind === 'article').length
@@ -169,16 +180,18 @@ export async function planImport(
 
   // --- Netscape bookmark HTML ---
   if (lower.endsWith('.html') || lower.endsWith('.htm')) {
-    const source: Source = { id: crypto.randomUUID(), kind: 'bookmark-file', name: fileName }
+    const name = folders ? `${fileName} (${describeSelection(folders)})` : fileName
+    const source: Source = { id: crypto.randomUUID(), kind: 'bookmark-file', name }
     ctx.createSources.push(source)
-    for (const outcome of parseBookmarkHtml(content)) {
+    const parsed = parseBookmarkHtml(content)
+    for (const outcome of folders ? selectOutcomes(parsed, folders) : parsed) {
       if (!outcome.ok) {
         ctx.details.push({
           title: outcome.rawTitle || '(untitled)',
           url: outcome.rawUrl,
           status: 'invalid',
           errorType: outcome.error,
-          message: outcome.error,
+          message: describeImportError(outcome.error, outcome.rawUrl),
         })
         continue
       }
@@ -201,7 +214,7 @@ export async function planImport(
           url: outcome.rawUrl,
           status: 'invalid',
           errorType: outcome.error,
-          message: outcome.error,
+          message: describeImportError(outcome.error, outcome.rawUrl),
         })
         continue
       }
@@ -244,7 +257,7 @@ export async function planImport(
           url: outcome.rawUrl,
           status: 'invalid',
           errorType: outcome.error,
-          message: outcome.error,
+          message: describeImportError(outcome.error, outcome.rawUrl),
         })
         continue
       }

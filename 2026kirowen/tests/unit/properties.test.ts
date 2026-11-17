@@ -179,3 +179,65 @@ describe('Property: Rediscover rule consistency', () => {
     )
   })
 })
+
+// ---------- Property 5: folder batches create the same items as one import ----------
+
+describe('Property: importing by folder batches equals importing at once', () => {
+  it('creates each canonical URL exactly once, whatever the batch split', async () => {
+    const recordArb = fc.record({
+      title: fc.constantFrom('One', 'Two', 'Three', '四'),
+      url: fc.constantFrom(
+        'https://example.org/a',
+        'https://example.org/b',
+        'https://example.org/c?utm_source=x',
+        'https://example.org/c',
+        'javascript:void(0)',
+      ),
+    })
+    const anchor = (r: { title: string; url: string }) => `<DT><A HREF="${r.url}">${r.title}</A>`
+
+    await fc.assert(
+      fc.asyncProperty(
+        fc.array(recordArb, { maxLength: 4 }),
+        fc
+          .uniqueArray(fc.constantFrom('Alpha', 'Beta', 'Gamma', '研究'), { minLength: 1, maxLength: 4 })
+          .chain((names) =>
+            fc.tuple(
+              fc.constant(names),
+              fc.array(fc.array(recordArb, { maxLength: 5 }), {
+                minLength: names.length,
+                maxLength: names.length,
+              }),
+            ),
+          ),
+        fc.array(fc.integer({ min: 0, max: 2 }), { minLength: 5, maxLength: 5 }),
+        async (rootRecords, [names, folderRecords], assignment) => {
+          const folders = names
+            .map((name, i) => `<DT><H3>${name}</H3><DL><p>${folderRecords[i].map(anchor).join('')}</DL><p>`)
+            .join('')
+          const html = `<DL><p>${rootRecords.map(anchor).join('')}${folders}</DL><p>`
+          const now = new Date('2026-01-01T00:00:00.000Z')
+
+          const once = await planImport('f.html', html, [], [], now)
+          if (!once.ok) return false
+
+          const keys: string[][] = [[], ...names.map((name) => [name])]
+          let library: Item[] = []
+          for (let batch = 0; batch <= 2; batch += 1) {
+            const selection = keys
+              .filter((_, i) => assignment[i] === batch)
+              .map((path) => ({ path, scope: 'direct' as const }))
+            if (selection.length === 0) continue
+            const result = await planImport('f.html', html, library, [], now, { folders: selection })
+            if (!result.ok) return false
+            library = [...library, ...result.plan.createItems]
+          }
+
+          const urls = (items: Item[]) => items.map((item) => item.canonicalUrl ?? '').sort()
+          return JSON.stringify(urls(library)) === JSON.stringify(urls(once.plan.createItems))
+        },
+      ),
+      { numRuns: 100 },
+    )
+  })
+})

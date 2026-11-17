@@ -16,7 +16,14 @@ export interface ParsedBookmark {
 
 export type BookmarkParseOutcome =
   | { ok: true; record: ParsedBookmark }
-  | { ok: false; error: ImportErrorType; rawTitle: string; rawUrl?: string }
+  | {
+      ok: false
+      error: ImportErrorType
+      rawTitle: string
+      rawUrl?: string
+      /** Kept for invalid records too, so folder counts include them (R2 AC8). */
+      folderPath: string[]
+    }
 
 /**
  * Parses a numeric UNIX-seconds string or an RFC 3339 date string into an
@@ -67,17 +74,18 @@ function folderPathFor(anchor: Element): string[] {
   }
   return path
 }
+
 function toOutcome(anchor: Element, folderPath: string[]): BookmarkParseOutcome {
   const rawUrl = anchor.getAttribute('href') ?? ''
   const rawTitle = (anchor.textContent ?? '').trim()
 
   const titleCheck = validateTitle(rawTitle)
   if (!titleCheck.ok) {
-    return { ok: false, error: titleCheck.error, rawTitle, rawUrl }
+    return { ok: false, error: titleCheck.error, rawTitle, rawUrl, folderPath }
   }
   const urlCheck = validateUrl(rawUrl)
   if (!urlCheck.ok) {
-    return { ok: false, error: urlCheck.error, rawTitle, rawUrl }
+    return { ok: false, error: urlCheck.error, rawTitle, rawUrl, folderPath }
   }
 
   const tagsAttr = anchor.getAttribute('tags') ?? ''
