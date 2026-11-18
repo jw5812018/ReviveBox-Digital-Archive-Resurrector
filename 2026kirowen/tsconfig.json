@@ -25,5 +25,5 @@
     }
   },
   "include": ["src", "tests/unit"],
-  "exclude": ["src/server"]
+  "exclude": ["src/server", "tests/unit/clientIp.test.ts"]
 }

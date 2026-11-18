@@ -216,3 +216,28 @@ E2E 发现的问题：
 - README 增加 Render 部署步骤；design.md、tasks.md 同步。
 
 下一步：用户在 Render 中通过 New → Blueprint 部署，告知服务地址；设置仓库变量 FEED_API_URL，重跑 Pages 工作流；线上实测一个 RSS 源和一个 Atom 源，并做限频验证。
+
+## 2026-11-18 — 删除 render.yaml 及相关引用（任务 20.1）
+- 删除仓库根目录的 render.yaml：Render 要求绑卡，没有部署，留着会误导评委。
+- 同步更新：tech steering 的 Deployment（Feed API 当前没有托管；线上静态版隐藏 Refresh，实时刷新用本地版 npm run dev / npm start；网络安全规则未改）、structure steering、README 的部署说明、PROGRESS.md、design.md 的 Deployment 一节、tasks.md 的 18.7（改为说明托管未完成，没有勾选）。
+- 本文件上面 2026-11-17 的 Render 条目是当时的记录，保留原样。没有改动 src 代码。
+
+## 2026-11-18 - 任务 19.1：无订阅服务时隐藏 Refresh
+对应需求：R9.13、R10.10。
+- 新增纯函数 isFeedRefreshAvailable({dev, apiBase})（src/shared/urls/feedUrls.ts）：本地 dev 或设置了 VITE_FEED_API_URL 时为真，静态构建且未设置时为假。feedApi.ts 导出 FEED_REFRESH_AVAILABLE。
+- Subscriptions 在不可用时不渲染 Refresh 按钮，并显示英文说明（在线订阅刷新需要单独部署的订阅服务，或使用本地版 npm run dev）。添加订阅和导入 OPML 不受影响。未改动任何服务端网络安全规则。
+- 单元测试：feedUrls.test.ts 新增 3 例。E2E 跑在 dev 服务器上（DEV 为真），订阅失败状态用例无需改动。
+- 验证：lint、两套 typecheck、74 个单测、build 通过；构建产物含新说明文案；6 条 E2E 通过。
+- 已知取舍：
+pm start 托管 dist 时同源 /api 可用，但该构建未设置 VITE_FEED_API_URL，因此也会隐藏 Refresh；需要时在构建时设置 VITE_FEED_API_URL 为同源地址。
+
+## 2026-11-18 - 任务 18.8：限频按托管网关提供的请求头取客户端 IP
+对应需求：R9.12。
+- 实测现象：订阅服务部署在 Railway（echoshelf-feeds-production-1c901821.up.railway.app），TRUST_PROXY_HOPS=1。连续 22 次 POST /api/feeds/fetch 没有一次返回 429（上限 20），说明 req.ip 每次落在不同的代理地址上，限频实际失效。
+- 原因（推测，未从文档确认代理层数）：按 1 跳取到的是 Railway 内部的代理地址而不是客户端地址。Railway 社区员工答复：公网网关会覆盖 X-Real-IP 和 X-Forwarded-For，客户端发来的值会被替换，应以 X-Real-IP 作为客户端地址。Express 的 req.ip 不读 X-Real-IP。
+- 修复：新增环境变量 CLIENT_IP_HEADER（大小写不敏感，Railway 上设为 x-real-ip）。取值逻辑是纯函数 resolveClientIp（src/server/feeds/clientIp.ts）：只接受该请求头中单个合法的 IPv4/IPv6 值（node:net 的 isIP）；请求头缺失、数组值、逗号列表或非法值时回退到 req.ip；始终返回非空 key，请求不会绕过限频。未设置时行为与之前相同（req.ip + TRUST_PROXY_HOPS）。
+- 取舍：只有在网关确实覆盖该请求头时才能设置 CLIENT_IP_HEADER，否则客户端可以自己伪造地址换取新的限频桶。本地和未知托管环境保持不设置。
+- 网络安全规则（HTTPS-only、公网目标、固定 IP、3 次重定向、8 秒超时、2 MiB、5 并发）未改动。
+- 单元测试：新增 tests/unit/clientIp.test.ts，覆盖未配置、合法 IPv4、合法 IPv6、缺失、非法值、逗号列表、数组值和无 req.ip。
+- README 和 tech steering 的环境变量说明加入 CLIENT_IP_HEADER。
+- 待办：在 Railway 设置 CLIENT_IP_HEADER=x-real-ip 并重新部署后，重测连续 22 次请求应在第 21 次返回 429，并确认伪造 X-Real-IP / X-Forwarded-For 不能换取新的限频桶。

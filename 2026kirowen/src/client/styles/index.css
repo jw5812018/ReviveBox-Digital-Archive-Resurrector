@@ -705,6 +705,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 }
 .subscriptions-status { font-size: 0.76rem; color: var(--ink-muted); }
 .subscriptions-status.is-error { color: var(--danger); }
+.subscriptions-note { margin: 0.5rem 0 0; font-size: 0.78rem; color: var(--ink-muted); }
 
 /* ---------- Screen-reader-only text ---------- */
 .sr-only {

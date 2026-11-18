@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import express, { type NextFunction, type Request, type Response } from 'express'
 import { DOMParser } from 'linkedom'
 import { fetchFeed, FEED_MAX_REDIRECTS } from '@server/feeds/fetchFeed.ts'
+import { resolveClientIp } from '@server/feeds/clientIp.ts'
 import { createRateLimiter } from '@server/feeds/rateLimit.ts'
 import { parseFeed } from '@shared/import/feedParser.ts'
 import { FEED_MAX_ITEMS } from './feeds/limits.ts'
@@ -24,6 +25,8 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? '')
   .filter((origin) => origin.length > 0)
 /** Proxy hops in front of the server; 0 locally, 1 behind a hosting proxy. */
 const TRUST_PROXY_HOPS = Number(process.env.TRUST_PROXY_HOPS ?? 0)
+/** Header set by the host's gateway with the client IP (e.g. x-real-ip); unset uses req.ip. */
+const CLIENT_IP_HEADER = process.env.CLIENT_IP_HEADER
 /** Feed fetches per client IP per 10 minutes (Requirement 9 AC12). */
 const RATE_LIMIT = Number(process.env.FEED_RATE_LIMIT ?? 20)
 const RATE_WINDOW_MS = 10 * 60 * 1000
@@ -99,7 +102,7 @@ app.post('/api/feeds/fetch', async (req, res) => {
   }
   // Never log the URL: query strings may contain private tokens.
 
-  const decision = limiter.take(req.ip ?? 'unknown')
+  const decision = limiter.take(resolveClientIp(req.headers, req.ip, CLIENT_IP_HEADER))
   if (!decision.allowed) {
     res.setHeader('Retry-After', String(decision.retryAfterSeconds))
     res.status(429).json({

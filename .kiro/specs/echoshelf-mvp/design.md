@@ -131,7 +131,7 @@ type AppAction =
 **Dashboard.tsx**
 - Welcome screen with demo/import buttons
 - Usage statistics display
-- 30-day backup reminder
+- Persistent local-storage notice with export shortcut (personal library only)
 
 **ItemList.tsx**
 - List of items with filtering and search
@@ -451,21 +451,15 @@ function normalizeUrl(url: string): string {
     urlObj.protocol = urlObj.protocol.toLowerCase();
     urlObj.hostname = urlObj.hostname.toLowerCase();
     
-    // 2. 移除末尾斜杠（根路径除外）
-    if (urlObj.pathname !== '/') {
-      urlObj.pathname = urlObj.pathname.replace(/\/+$/, '');
+    // 2. 去除默认端口，移除 fragment
+    if ((urlObj.protocol === 'https:' && urlObj.port === '443') ||
+        (urlObj.protocol === 'http:' && urlObj.port === '80')) {
+      urlObj.port = '';
     }
-    
-    // 3. 解码百分号编码
-    urlObj.pathname = decodeURIComponent(urlObj.pathname);
-    
-    // 4. 移除 fragment
     urlObj.hash = '';
-    
-    // 5. 移除 www. 前缀
-    if (urlObj.hostname.startsWith('www.')) {
-      urlObj.hostname = urlObj.hostname.substring(4);
-    }
+
+    // 3. 移除跟踪参数（utm_*、fbclid、gclid 等），保留其余查询参数
+    // 不做：合并 http/https、去除 www、去除末尾斜杠、解码百分号编码（以 normalizeUrl.ts 为准）
     
     return urlObj.href;
   } catch {
@@ -965,13 +959,13 @@ Requirement 9 AC11-15 and Requirement 10 AC10.
 
 - The client is a static build on GitHub Pages. Every feature except live feed refresh works there.
 - Live refresh calls a separately hosted Node service (the same `src/server/index.ts`). The client reads its base URL from the build variable `VITE_FEED_API_URL`; when unset it calls same-origin `/api`, which is the local dev and `npm start` setup.
-- Hosting choice: a long-running Node web service (Render free plan) rather than serverless functions. A free Render service runs one instance, so the in-memory concurrency limit (5) and rate limiter apply to all traffic, and the pinned-address HTTPS client needs real Node `https` and `dns`. Edge runtimes that only offer `fetch` cannot pin the validated address and are excluded.
+- Hosting requirement: a long-running Node web service rather than serverless functions (no host is set up yet; Render needed a payment card and Vercel is under account review). A single-instance service means the in-memory concurrency limit (5) and rate limiter apply to all traffic, and the pinned-address HTTPS client needs real Node `https` and `dns`. Edge runtimes that only offer `fetch` cannot pin the validated address and are excluded.
 - CORS: only origins listed in `ALLOWED_ORIGINS` (comma separated, exact match) receive `Access-Control-Allow-Origin`; preflight `OPTIONS` is answered for those origins only. No credentials are used.
-- Rate limit: fixed 10-minute window per client IP, 20 fetches by default (`FEED_RATE_LIMIT`); over the limit returns 429 with `retryAfterSeconds`. Client IP comes from `req.ip` with `TRUST_PROXY_HOPS` (default 0, 1 behind the host's proxy) so a client cannot spoof `X-Forwarded-For`. Requests waiting for a concurrency slot are capped at 20; beyond that the server returns 503.
+- Rate limit: fixed 10-minute window per client IP, 20 fetches by default (`FEED_RATE_LIMIT`); over the limit returns 429 with `retryAfterSeconds`. Client IP comes from the header named by `CLIENT_IP_HEADER` when the host overwrites it on every request (Railway: `x-real-ip`); a missing, multi-valued or invalid value falls back to `req.ip`. Without `CLIENT_IP_HEADER`, `req.ip` with `TRUST_PROXY_HOPS` (default 0) is used. Requests waiting for a concurrency slot are capped at 20; beyond that the server returns 503.
 - Cold start: free hosting sleeps after 15 minutes idle and takes about a minute to wake. On refresh the client first calls `GET /api/health` with a 90-second timeout and shows "Waking the feed service…", then posts the fetch with a 30-second timeout. It never pings the service on page load (AC15).
 - Failure handling: network errors, timeouts, non-JSON bodies and missing configuration all map to `network-error` with a specific message; saved items are never touched.
 - Static serving: the server serves `dist/` only when it exists, so the same entry runs as an API-only service on the host.
-- Blueprint: `render.yaml` at the repository root defines the Render web service (`rootDir: 2026kirowen`, production dependencies only, `npm start`, health check `/api/health`, Singapore region). A build filter limits redeploys to server, shared and dependency changes.
+- Current state: the feed API runs on Railway (Free plan, single instance, `npm start` from `2026kirowen`). The Pages build points to it through the repository variable `FEED_API_URL`; when that variable is unset the static build hides Refresh and points to the local build.
 - Proxy hops: `TRUST_PROXY_HOPS=1`. Counting too few hops only makes rate-limit buckets coarser; counting too many would let a client choose its own address, so 1 is the safe default. After deploying, verify that a client-supplied `X-Forwarded-For` cannot change the bucket.
 ## Accessibility Design
 

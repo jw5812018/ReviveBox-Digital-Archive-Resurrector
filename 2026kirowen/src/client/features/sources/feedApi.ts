@@ -1,5 +1,6 @@
 import type { FeedFetchState } from '@shared/models/types'
 import type { FetchedArticle } from '@shared/import/pipeline'
+import { isFeedRefreshAvailable } from '@shared/urls/feedUrls'
 
 /**
  * Client for the feed service (Requirement 9 AC13-15, Requirement 10 AC10).
@@ -7,6 +8,12 @@ import type { FetchedArticle } from '@shared/import/pipeline'
  * the app calls same-origin /api (local dev proxy and `npm start`).
  */
 export const FEED_API_BASE = (import.meta.env.VITE_FEED_API_URL ?? '').trim().replace(/\/+$/, '')
+
+/** False in a static build without VITE_FEED_API_URL: there is no feed service to call. */
+export const FEED_REFRESH_AVAILABLE = isFeedRefreshAvailable({
+  dev: import.meta.env.DEV,
+  apiBase: FEED_API_BASE,
+})
 
 const WAKE_BUDGET_MS = 90_000
 const HEALTH_ATTEMPT_MS = 15_000

@@ -92,16 +92,17 @@ absent.
 | `VITE_FEED_API_URL` | client build (repo variable `FEED_API_URL`) | Base URL of the feed API; empty means same-origin `/api` |
 | `ALLOWED_ORIGINS` | API service | Comma-separated exact origins allowed to call the API cross-origin |
 | `TRUST_PROXY_HOPS` | API service | Proxy hops in front of the service (1 behind a hosting proxy) |
+| `CLIENT_IP_HEADER` | API service | Optional request header (case-insensitive, e.g. `x-real-ip`) that the host's gateway sets to the client IP; the rate limit uses it when it holds one valid IPv4/IPv6 address, otherwise falls back to `req.ip` with `TRUST_PROXY_HOPS`. Set it only when the gateway overwrites the header; on Railway use `x-real-ip` |
 | `FEED_RATE_LIMIT` | API service | Fetches per client IP per 10 minutes (default 20) |
 | `PORT` | API service | Listen port (set by most hosts) |
 
-The repository root contains a Render Blueprint (`render.yaml`) for the feed
-service. To deploy it: in the Render dashboard choose **New → Blueprint**,
-select this repository, and apply. The Blueprint installs production
-dependencies only, runs `npm start` API-only, and sets `ALLOWED_ORIGINS` to the
-GitHub Pages origin. Then set the repository variable `FEED_API_URL` (Settings →
-Secrets and variables → Actions → Variables) to the service URL and re-run the
-Pages workflow.
+**The feed API is not currently hosted.** The online static build therefore
+cannot refresh feeds; live refresh works in the local build (`npm run dev` or
+`npm start`). If you host the API yourself, run `npm start` on a long-running
+Node host (it needs real Node `https` and `dns`, so fetch-only edge runtimes
+do not work), set `ALLOWED_ORIGINS` to the Pages origin, then set the
+repository variable `FEED_API_URL` (Settings → Secrets and variables →
+Actions → Variables) to the service URL and re-run the Pages workflow.
 
 Free hosting plans sleep when idle. The first refresh after a pause shows
 "Waking the feed service…" and can take about a minute. The app never pings

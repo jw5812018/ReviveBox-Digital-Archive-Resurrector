@@ -23,6 +23,15 @@ export function isSampleFeedUrl(url: string | undefined): boolean {
   )
 }
 
+/**
+ * Whether manual feed refresh can work (Requirement 9 AC13, Requirement 10 AC10).
+ * Local dev proxies same-origin /api to the feed service. A static build has no
+ * such service unless VITE_FEED_API_URL points at a separately hosted one.
+ */
+export function isFeedRefreshAvailable(env: { dev: boolean; apiBase: string }): boolean {
+  return env.dev || env.apiBase.trim() !== ''
+}
+
 export type FeedUrlCheck = { ok: true; url: string } | { ok: false; message: string }
 
 /**

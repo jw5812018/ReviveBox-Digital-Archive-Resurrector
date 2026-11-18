@@ -35,7 +35,7 @@ EchoShelf 第一版聚焦于核心功能：导入现有收藏、管理个人知�
 4. WHEN 示例数据库初始化完成，THE System SHALL 为所有示例条目设置 isSample 字段为 true，并在界面上显示名为"Sample"的视觉标记，所有示例条目不发起任何网络请求
 5. WHILE 用户处于示例库模式，THE System SHALL 使用独立的 IndexedDB 数据库（'echoshelf-demo'）存储示例数据，并使用独立的 IndexedDB 数据库（'echoshelf-user'）存储个人数据，两个数据库之间不存在任何交叉引用
 6. IF 用户触发重置示例库操作，THEN THE System SHALL 清空'echoshelf-demo'数据库中的所有数据，且'echoshelf-user'数据库内容保持不变
-7. WHEN 示例内容加载完成，THE System SHALL 显示来源说明文本"示例数据由系统生成"和三个数据统计指标：书签数量、订阅数量、文章数量
+7. WHEN 示例内容加载完成，THE System SHALL 显示英文来源说明文本（例如 "Sample data generated for this demo"）和三个数据统计指标：书签数量、订阅数量、文章数量
 
 ### Requirement 2: 导入浏览器书签 HTML
 
@@ -45,7 +45,7 @@ EchoShelf 第一版聚焦于核心功能：导入现有收藏、管理个人知�
 
 1. WHEN 用户选择一个书签 HTML 文件导入，THE Parser SHALL 读取文件内容并解析符合 Netscape Bookmark Exchange Format 的 HTML 结构，其中 H3 元素表示文件夹、A 元素表示书签，解析超时不得超过 30 秒
 2. WHERE 书签包含长度在 1 到 255 个字符之间的有效标题（去除首尾空白字符后非空），THE Parser SHALL 提取标题作为 Item 的 title 字段
-3. WHERE 书签包含有效的 http 或 https URL（长度在 1 到 2048 个字符），THE Parser SHALL 提取 URL 并执行规范化处理，包括：去除末尾斜杠（根路径除外）、转换为小写协议和域名、解码百分号编码
+3. WHERE 书签包含有效的 http 或 https URL（长度在 1 到 2048 个字符），THE Parser SHALL 提取 URL 并执行规范化处理，包括：转换为小写协议和域名、去除默认端口、移除 fragment、移除已知跟踪参数（如 utm_*、fbclid、gclid）；为保留链接原意，不合并 http 与 https、不去除 www、不去除末尾斜杠、不解码百分号编码、不改变路径大小写
 4. WHERE 书签包含保存日期（LAST_MODIFIED 或 ADD_DATE 属性），THE Parser SHALL 按照以下优先顺序处理：先尝试 RFC 3339 格式，再尝试 UNIX 时间戳（秒），最终转换为 UTC 时间
 5. WHERE 书签包含文件夹路径（使用正斜杠 / 作为分隔符），THE Parser SHALL 将直接父文件夹作为初始标签添加到 tags 字段，最多添加 100 个标签
 6. IF 书签缺少有效标题（长度为 0 或超过 255 字符）或有效 URL（非 http/https 协议或长度超过 2048 字符），THE Parser SHALL 标记为无效记录，并从以下错误类型中选择匹配的错误：MissingTitle、MissingUrl、InvalidUrlProtocol、TitleTooLong、UrlTooLong
@@ -56,6 +56,7 @@ EchoShelf 第一版聚焦于核心功能：导入现有收藏、管理个人知�
 11. IF 某个文件夹直接包含的记录超过 1,000 条（无法再按子文件夹拆分），THEN THE Importer SHALL 禁止选择这部分记录并说明原因，建议用户在浏览器中拆分该文件夹后重新导出
 12. WHEN 用户确认一批导入，THE System SHALL 允许在不重新选择文件的情况下继续选择同一文件中的其他文件夹，并标出本次会话中已导入的文件夹
 13. WHEN 分批导入同一文件，THE System SHALL 对每批执行与普通导入相同的规范化与去重规则；再次选择已导入的文件夹只产生重复记录（合并来源与标签），不新建条目
+14. WHERE 书签位于嵌套文件夹，THE Parser SHALL 在 Item 上保存完整文件夹路径（folderPath，各级文件夹名数组），直接父文件夹仍按 AC5 作为标签；合并重复条目时不覆盖已有 folderPath
 
 ### Requirement 3: 导入订阅与文章
 
@@ -92,6 +93,8 @@ EchoShelf 第一版聚焦于核心功能：导入现有收藏、管理个人知�
 10. IF 导入的文本文件大小超过 5 MiB，THE Parser SHALL 拒绝处理并显示错误提示"文件大小超过 5 MiB 限制"
 11. WHEN 书签表单提交时标题字段为空或超过 200 字符，THE System SHALL 显示错误提示"标题长度必须为 1-200 字符"
 12. WHEN 书签表单提交时 URL 字段为空或超过 2048 字符，THE System SHALL 显示错误提示"URL 长度必须为 1-2048 字符"
+13. WHEN 用户编辑条目，THE System SHALL 允许修改书签的标题、URL、标签和笔记的标题、正文，保存前执行与创建相同的校验，并更新 updatedAt；编辑不得改变 savedAt、starred 和 readAt
+14. WHEN 用户删除条目，THE System SHALL 先要求确认；确认后仅删除该条目，取消则不修改任何数据；删除个人库条目不影响示例库，反之亦然
 
 ### Requirement 5: 导入预览与去重
 
@@ -127,6 +130,9 @@ EchoShelf 第一版聚焦于核心功能：导入现有收藏、管理个人知�
 8. WHERE 搜索或筛选结果为空，THE System SHALL 显示空状态提示"未找到匹配的结果"和"尝试调整搜索关键词或筛选条件"的恢复操作建议
 9. WHEN 用户点击条目标题，THE System SHALL 在详情面板显示完整内容，包括标题、来源、保存日期、标签列表、正文/摘要、收藏状态和已读状态
 10. WHEN 用户点击外部链接，THE System SHALL 在新窗口打开链接，使用 rel="noopener noreferrer" 属性，并限制 target="_blank"
+11. WHERE 用户使用标签筛选、未读筛选或排序，THE System SHALL 提供标签选择、"Unread"开关，以及按保存时间（新到旧/旧到新）和标题排序的控件，并与搜索和类型筛选组合生效
+12. WHEN 用户在侧栏选择某个订阅来源或标签，THE System SHALL 仅显示属于该来源或带该标签的条目，并提供清除该限定的操作
+13. WHEN 用户选择目录视图，THE System SHALL 按条目的 folderPath 逐级展示文件夹，点击文件夹进入下一级并显示面包屑，未保存 folderPath 的条目归入"Unfiled"
 
 ### Requirement 7: 本地保存与备份
 
@@ -142,7 +148,7 @@ EchoShelf 第一版聚焦于核心功能：导入现有收藏、管理个人知�
 6. WHEN 用户导入导出的备份文件，THE Importer SHALL 验证 schemaVersion 是否为支持的版本号（目前仅支持 v1），验证 JSON 结构完整性
 7. IF JSON 文件版本未知或格式损坏，THE Importer SHALL 拒绝导入并显示错误提示"备份文件版本不支持或格式已损坏"
 8. IF 数据库写入失败，THE System SHALL 显示可见的错误提示且不展示"成功"状态
-9. WHERE 用户使用个人数据库（echoshelf-user），THE System SHALL 在首次使用 30 天后显示提示"建议定期导出备份以确保数据安全"
+9. WHERE 用户使用个人数据库（echoshelf-user），THE System SHALL 持续显示英文提示"Your library is stored only in this browser. Export a backup regularly."，并在提示旁提供导出备份入口
 10. WHEN 用户重置示例库，THEN THE System SHALL 清空 echoshelf-demo IndexedDB 数据库中的所有数据，且 echoshelf-user 数据库内容保持不变
 
 ### Requirement 8: Rediscover（重新发现）
@@ -159,7 +165,7 @@ EchoShelf 第一版聚焦于核心功能：导入现有收藏、管理个人知�
 6. WHEN 用户收藏条目，THE System SHALL 保留该条目在其他筛选视图中的可见性
 7. WHERE 多个条目符合 Rediscover 规则，THE System SHALL 使用按 savedAt 字段升序排列的稳定排序算法
 8. WHERE 系统计算日期需要确定性时钟，THE System SHALL 提供时钟注入接口用于测试，允许测试框架指定当前时间用于计算
-9. WHERE 用户点击 Rediscover 条目，THEN THE System SHALL 标记该条目为已读并在新窗口中打开详情
+9. WHERE 用户点击 Rediscover 条目，THEN THE System SHALL 标记该条目为已读并在详情面板中打开该条目
 10. WHEN Rediscover 规则更新，THE System SHALL 在 10 秒内重新计算推荐列表并刷新展示
 
 ### Requirement 9: 手动更新 RSS

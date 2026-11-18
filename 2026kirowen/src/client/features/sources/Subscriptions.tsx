@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Source, FeedFetchState } from '@shared/models/types'
 import { isSampleFeedUrl } from '@shared/urls/feedUrls'
-import type { FeedServiceStage } from './feedApi'
+import { FEED_REFRESH_AVAILABLE, type FeedServiceStage } from './feedApi'
 
 interface SubscriptionsProps {
   feeds: Source[]
@@ -80,7 +80,7 @@ export function Subscriptions({
                     {statusText}
                   </span>
                 </div>
-                {!sample && (
+                {!sample && FEED_REFRESH_AVAILABLE && (
                   <button
                     type="button"
                     className="btn-secondary btn-small"
@@ -95,6 +95,12 @@ export function Subscriptions({
             )
           })}
         </ul>
+      )}
+      {!FEED_REFRESH_AVAILABLE && (
+        <p className="subscriptions-note">
+          Refreshing subscriptions online needs a separately deployed feed service, or run the
+          local version (npm run dev).
+        </p>
       )}
       <form className="subscriptions-add" onSubmit={(event) => void handleAdd(event)}>
         <label className="subscriptions-add-label" htmlFor="add-feed-url">

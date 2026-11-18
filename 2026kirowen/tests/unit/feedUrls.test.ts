@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { checkNewFeedUrl, isSampleFeedUrl } from '@shared/urls/feedUrls'
+import { checkNewFeedUrl, isFeedRefreshAvailable, isSampleFeedUrl } from '@shared/urls/feedUrls'
+
+describe('isFeedRefreshAvailable', () => {
+  it('is available in local dev even without an API address', () => {
+    expect(isFeedRefreshAvailable({ dev: true, apiBase: '' })).toBe(true)
+  })
+  it('is hidden in a static build without an API address', () => {
+    expect(isFeedRefreshAvailable({ dev: false, apiBase: '' })).toBe(false)
+    expect(isFeedRefreshAvailable({ dev: false, apiBase: '   ' })).toBe(false)
+  })
+  it('is available in a static build with an API address', () => {
+    expect(isFeedRefreshAvailable({ dev: false, apiBase: 'https://feeds.example.net' })).toBe(true)
+  })
+})
 
 describe('isSampleFeedUrl', () => {
   it('flags reserved example domains', () => {

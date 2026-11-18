@@ -63,10 +63,8 @@ EchoShelf MVP 是一个完全在浏览器本地运行的个人知识归档工具
   
   - [x] 3.2 Implement URL normalizer
     - 转换为小写协议和域名
-    - 移除末尾斜杠（根路径除外）
-    - 解码百分号编码
-    - 移除 fragment（hash）
-    - 移除 www. 前缀
+    - 去除默认端口、移除 fragment（hash）和跟踪参数
+    - 不合并 http/https，不去除 www 和末尾斜杠，不解码百分号编码（以 normalizeUrl.ts 与开发指引 4.2 为准）
     - _Requirements: R2.3, R5.6, R5.8, Design: URL Normalization_
   
   - [x] 3.3 Implement file size validator
@@ -147,7 +145,7 @@ EchoShelf MVP 是一个完全在浏览器本地运行的个人知识归档工具
     - 添加 Try the demo 按钮
     - 添加 Import your collection 按钮
     - 显示使用统计（书签数、订阅数、文章数）
-    - _Requirements: R1.1, R1.7, R7.9 (30-day reminder)_
+    - _Requirements: R1.1, R1.7, R7.9 (persistent local-storage notice, see 19.5)_
   
   - [x] 7.2 Create ItemList component
     - 渲染条目列表
@@ -342,8 +340,8 @@ EchoShelf MVP 是一个完全在浏览器本地运行的个人知识归档工具
   
   - [x] 15.2 Write unit tests for URL normalizer
     - 协议小写转换
-    - 末尾斜杠移除
-    - 百分号解码
+    - 默认端口与 fragment 移除、跟踪参数移除
+    - 末尾斜杠、www、http/https 保持不变
     - _Requirements: R2.3, R5.6_
   
   - [x] 15.3 Write unit tests for deduplication
@@ -457,20 +455,72 @@ EchoShelf MVP 是一个完全在浏览器本地运行的个人知识归档工具
     - _Requirements: R2.8, R2.12, R2.13, R5.11, R9.12_
 
   - [ ] 18.7 Deploy feed API and wire the Pages build
-    - 仓库根目录提供 render.yaml；在 Render 中通过 New → Blueprint 部署 src/server/index.ts（API-only）
+    - **未完成：目前没有托管订阅服务。** Render（要求绑卡）和 Vercel（账号审核中）都没成功，render.yaml 已在 20.1 删除；线上静态版隐藏 Refresh（19.1），实时刷新用本地版
+    - 若日后选定平台：部署 src/server/index.ts（API-only，需要真实 Node https/dns，不能用只有 fetch 的运行时）
     - 部署后验证：伪造 X-Forwarded-For 不能换取新的限频桶；两个不同出口 IP 各有独立限额
     - Pages 构建读取仓库变量 FEED_API_URL；线上实测一个 RSS 源和一个 Atom 源并记录
     - _Requirements: R9.11, R9.12, R10.10_
 
+  - [x] 18.8 Read the client IP from a host-provided header
+    - 新增环境变量 CLIENT_IP_HEADER（例如 x-real-ip）：设置后限频按该请求头取客户端 IP，未设置时保持 req.ip 与 TRUST_PROXY_HOPS 的现有行为
+    - 只接受单个合法 IPv4/IPv6 值；请求头缺失或非法时回退到 req.ip，不得让请求绕过限频
+    - 原因：Railway 网关覆盖 X-Real-IP，实测 trust proxy = 1 时 22 次请求未触发 429
+    - 单元测试覆盖取值与回退；更新 README 和 tech steering 的环境变量说明
+    - _Requirements: R9.12_
+
+## Gap Closure (post-MVP alignment)
+
+- [ ] 19. Feature gaps against the development guide
+  - [x] 19.1 Hide Refresh when no feed API is configured
+    - 静态构建且未设置 VITE_FEED_API_URL 时隐藏 Refresh，并显示说明：在线订阅刷新需要单独部署的订阅服务，或使用本地版
+    - 添加订阅和导入 OPML 仍可用
+    - _Requirements: R9.13, R10.10_
+
+  - [ ] 19.2 Tag filter, unread filter and sorting
+    - 标签多选（OR）、Unread 开关、按保存时间和标题排序，与搜索和类型筛选组合
+    - 纯函数放在 filterItems.ts，补单元测试
+    - _Requirements: R6.7, R6.11_
+
+  - [ ] 19.3 Edit and delete items
+    - 编辑书签和笔记，沿用创建时的校验；删除前确认
+    - 示例库与个人库互不影响；补单元测试和一条 E2E
+    - _Requirements: R4.13, R4.14_
+
+  - [ ] 19.4 Browse by source and tag in the sidebar
+    - 点击订阅来源或标签只显示对应条目，可清除限定
+    - _Requirements: R6.12_
+
+  - [ ] 19.5 Local-storage notice in the personal library
+    - 个人库持续显示"数据只保存在本浏览器"提示和导出入口；示例库不显示
+    - _Requirements: R7.9_
+
+  - [ ] 19.6 Save folder paths and add directory view
+    - Item 增加 folderPath，解析器保存完整路径，合并时不覆盖；备份格式保持向后兼容
+    - 目录视图按层级浏览，带面包屑，无路径的条目归入 Unfiled
+    - _Requirements: R2.14, R6.13_
+
+  - [ ] 19.7 Generate the demo library through the real import pipeline
+    - 示例库由 public/demo 的示例文件经 planImport 写入，而不是直接写库
+    - _Requirements: R1.2, R1.4_
+
+- [ ] 20. Repository and presentation cleanup
+  - [x] 20.1 Remove render.yaml and its references
+    - 删除 render.yaml，并同步 tech steering、README、18.7 的描述
+    - _Requirements: R10.10_
+
+  - [ ] 20.2 Narrow-screen and contrast checks
+    - 在 390px 宽度检查布局并补一条 E2E；次要按钮悬停对比度提高到 4.5:1 以上
+    - _Requirements: R10.2, R10.4_
+
 ## Checkpoints
 
-- [ ] Checkpoint 1 - Core Infrastructure
+- [x] Checkpoint 1 - Core Infrastructure
   - Ensure all setup and infrastructure tasks completed.
   - Database schema and service layer working.
   - Basic layout and navigation components rendered.
   - Ask the user if questions arise.
 
-- [ ] Checkpoint 2 - Import/Export & Deduplication
+- [x] Checkpoint 2 - Import/Export & Deduplication
   - Ensure import parsers working for HTML, OPML, RSS/Atom.
   - URL normalization and deduplication logic correct.
   - Import preview and confirmation flow tested.
@@ -545,6 +595,14 @@ EchoShelf MVP 是一个完全在浏览器本地运行的个人知识归档工具
     {
       "id": 12,
       "tasks": ["18.7"]
+    },
+    {
+      "id": 13,
+      "tasks": ["19.1", "19.2", "19.3", "19.5", "19.7", "20.1", "20.2"]
+    },
+    {
+      "id": 14,
+      "tasks": ["19.4", "19.6"]
     }
   ]
 }

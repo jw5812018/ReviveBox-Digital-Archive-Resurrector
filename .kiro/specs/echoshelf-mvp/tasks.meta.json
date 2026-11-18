@@ -605,6 +605,56 @@
         "chatSessionId": "sess_d37c3a75-dcea-49db-853c-44785b6b5608",
         "timestamp": 1794919125785
       }
+    ],
+    "Checkpoint 1 - Core Infrastructure": [
+      {
+        "executionId": "c98b65cc-cd1d-4660-a8a2-43de959a4f87",
+        "chatSessionId": "sess_3abf42bc-23fd-483a-a0d4-319312eb5366",
+        "timestamp": 1794969089486
+      }
+    ],
+    "Checkpoint 2 - Import/Export & Deduplication": [
+      {
+        "executionId": "c98b65cc-cd1d-4660-a8a2-43de959a4f87",
+        "chatSessionId": "sess_3abf42bc-23fd-483a-a0d4-319312eb5366",
+        "timestamp": 1794969090455
+      }
+    ],
+    "19.1 Hide Refresh when no feed API is configured": [
+      {
+        "executionId": "61732865-c6c3-46b2-8af2-96a2f0cc683e",
+        "chatSessionId": "sess_3abf42bc-23fd-483a-a0d4-319312eb5366",
+        "timestamp": 1794969719771
+      },
+      {
+        "executionId": "61732865-c6c3-46b2-8af2-96a2f0cc683e",
+        "chatSessionId": "sess_3abf42bc-23fd-483a-a0d4-319312eb5366",
+        "timestamp": 1794970052380
+      }
+    ],
+    "20.1 Remove render.yaml and its references": [
+      {
+        "executionId": "61732865-c6c3-46b2-8af2-96a2f0cc683e",
+        "chatSessionId": "sess_3abf42bc-23fd-483a-a0d4-319312eb5366",
+        "timestamp": 1794969719876
+      },
+      {
+        "executionId": "61732865-c6c3-46b2-8af2-96a2f0cc683e",
+        "chatSessionId": "sess_3abf42bc-23fd-483a-a0d4-319312eb5366",
+        "timestamp": 1794970052851
+      }
+    ],
+    "18.8 Read the client IP from a host-provided header": [
+      {
+        "executionId": "0ced7bd8-a5a8-4544-a6f4-b03da0dd0be6",
+        "chatSessionId": "sess_3abf42bc-23fd-483a-a0d4-319312eb5366",
+        "timestamp": 1794989999093
+      },
+      {
+        "executionId": "0ced7bd8-a5a8-4544-a6f4-b03da0dd0be6",
+        "chatSessionId": "sess_3abf42bc-23fd-483a-a0d4-319312eb5366",
+        "timestamp": 1794990323051
+      }
     ]
   }
 }
