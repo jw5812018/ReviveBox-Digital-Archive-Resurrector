@@ -1,0 +1,30 @@
+﻿{
+  "variables": {
+    "NIXPACKS_NODEJS_VERSION": "20"
+  },
+  "phases": {
+    "setup": {
+      "nix": {
+        "packages": ["nodejs-20.x", "npm-10.x"]
+      },
+      "env": {
+        "NIXPACKS_NODEJS_VERSION": "20"
+      }
+    },
+    "install": {
+      "cmd": [
+        "npm install --omit=dev --legacy-peer-deps --no-audit --no-fund"
+      ]
+    },
+    "build": {
+      "cmd": [
+        "npm run build --if-present"
+      ]
+    },
+    "start": {
+      "cmd": [
+        "npm start"
+      ]
+    }
+  }
+}
