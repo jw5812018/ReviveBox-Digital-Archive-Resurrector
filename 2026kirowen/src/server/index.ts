@@ -193,6 +193,24 @@ if (serveClient) {
   })
 }
 
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`EchoShelf server listening on port `);
+  console.log(`Feed rules: https-only, public targets,  redirects max`);
+  console.log(`Client: ; ` +
+    `CORS origins: ; rate limit: /10 min per IP`,
+  );
+});
+
+// Debug: log all requests
+app.use((req, res, next) => {
+  console.log(`[DEBUG] Request: ` + req.method + ` ` + req.originalUrl);
+  next();
+})
+
+// Health check at root
+app.get(`/`, (_req, res) => {
+  res.json({ ok: true, path: `/` });
+})
 app.listen(PORT, () => {
   console.log(`EchoShelf server listening on port ${PORT}`)
   console.log(`Feed rules: https-only, public targets, ${FEED_MAX_REDIRECTS} redirects max`)
