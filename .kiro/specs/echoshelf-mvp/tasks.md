@@ -454,11 +454,13 @@ EchoShelf MVP 是一个完全在浏览器本地运行的个人知识归档工具
     - E2E：1,200 条书签文件分两批导入，第二批后共 1,200 条，重复选择不新建
     - _Requirements: R2.8, R2.12, R2.13, R5.11, R9.12_
 
-  - [ ] 18.7 Deploy feed API and wire the Pages build
-    - **未完成：目前没有托管订阅服务。** Render（要求绑卡）和 Vercel（账号审核中）都没成功，render.yaml 已在 20.1 删除；线上静态版隐藏 Refresh（19.1），实时刷新用本地版
-    - 若日后选定平台：部署 src/server/index.ts（API-only，需要真实 Node https/dns，不能用只有 fetch 的运行时）
-    - 部署后验证：伪造 X-Forwarded-For 不能换取新的限频桶；两个不同出口 IP 各有独立限额
-    - Pages 构建读取仓库变量 FEED_API_URL；线上实测一个 RSS 源和一个 Atom 源并记录
+  - [x] 18.7 Deploy feed API and wire the Pages build
+    - 托管在 Railway（Free 计划，单实例），服务地址 https://echoshelf-feeds-production-1c901821.up.railway.app；Render（要求绑卡）和 Vercel（账号审核中）未采用，render.yaml 已在 20.1 删除
+    - 部署 src/server/index.ts（API-only，dist/ 不存在）：根目录 `2026kirowen`，启动命令 `npm start`，端口 8080；Build Command 设为 `echo "skip build"`，因为 Railpack 已用 npm install 装好依赖，再跑 npm ci 会报 EBUSY
+    - 服务端环境变量：ALLOWED_ORIGINS（Pages 来源）、TRUST_PROXY_HOPS=1、CLIENT_IP_HEADER=x-real-ip（18.8）、FEED_RATE_LIMIT=20、NODE_VERSION=22；网络安全规则未改动
+    - Pages 构建读取仓库变量 FEED_API_URL（已设置），workflow_dispatch 运行 44269372343 部署后，线上页面点 Refresh 成功显示文章
+    - 验收（2026-11-18 实测）：/api/health 200；允许来源预检 204，其他来源 403；RSS 源 https://hnrss.org/frontpage 抓取成功；Atom 源 https://github.com/nodejs/node/releases.atom 返回 200、ok:true、10 篇；https://127.0.0.1 和 https://169.254.169.254 返回 400 blocked-target，http:// 返回 400 invalid-url
+    - 限频验收：设置 CLIENT_IP_HEADER 后，10 分钟内超过 20 次请求返回 429；伪造 X-Real-IP 或 X-Forwarded-For 仍为 429；两个不同出口 IP（直连与本机代理）各有独立限额，直连被限到 429 时代理路径返回 400 blocked-target
     - _Requirements: R9.11, R9.12, R10.10_
 
   - [x] 18.8 Read the client IP from a host-provided header

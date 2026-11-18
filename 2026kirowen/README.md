@@ -96,13 +96,34 @@ absent.
 | `FEED_RATE_LIMIT` | API service | Fetches per client IP per 10 minutes (default 20) |
 | `PORT` | API service | Listen port (set by most hosts) |
 
-**The feed API is not currently hosted.** The online static build therefore
-cannot refresh feeds; live refresh works in the local build (`npm run dev` or
-`npm start`). If you host the API yourself, run `npm start` on a long-running
-Node host (it needs real Node `https` and `dns`, so fetch-only edge runtimes
-do not work), set `ALLOWED_ORIGINS` to the Pages origin, then set the
-repository variable `FEED_API_URL` (Settings → Secrets and variables →
-Actions → Variables) to the service URL and re-run the Pages workflow.
+The public demo's feed API runs on Railway (Free plan, one instance) at
+`https://echoshelf-feeds-production-1c901821.up.railway.app`. It needs a
+long-running Node host with real `https` and `dns`; fetch-only edge runtimes
+do not work. If `FEED_API_URL` is not set, the static build hides Refresh and
+live refresh works only in the local build (`npm run dev` or `npm start`).
+
+#### Deploying the feed API on Railway
+
+1. Create a service from this GitHub repository and set **Root Directory** to
+   `2026kirowen`.
+2. Set **Build Command** to `echo "skip build"`. Railpack already runs
+   `npm install`; an extra `npm ci` build step fails with `EBUSY`. Do not rely
+   on `nixpacks.json`: Railpack ignores it. No client build is needed, because
+   the service runs API-only when `dist/` is absent.
+3. Set **Start Command** to `npm start`. The service listens on `PORT`, which
+   Railway sets (8080 on the current deployment).
+4. Add the service variables:
+   - `ALLOWED_ORIGINS=https://<user>.github.io` (the Pages origin, no path)
+   - `TRUST_PROXY_HOPS=1`
+   - `CLIENT_IP_HEADER=x-real-ip`. Without it, `req.ip` lands on Railway's
+     internal proxy addresses and the rate limit never triggers. Railway's
+     gateway overwrites `X-Real-IP`, so clients cannot forge it.
+   - `FEED_RATE_LIMIT=20`
+   - `NODE_VERSION=22`
+5. Generate a public domain and check `GET /api/health` returns `{"ok":true}`.
+6. In GitHub, set the repository variable `FEED_API_URL` (Settings → Secrets
+   and variables → Actions → Variables) to the service URL, then re-run the
+   Pages workflow. The build passes it to the client as `VITE_FEED_API_URL`.
 
 Free hosting plans sleep when idle. The first refresh after a pause shows
 "Waking the feed service…" and can take about a minute. The app never pings

@@ -228,8 +228,7 @@ E2E 发现的问题：
 - Subscriptions 在不可用时不渲染 Refresh 按钮，并显示英文说明（在线订阅刷新需要单独部署的订阅服务，或使用本地版 npm run dev）。添加订阅和导入 OPML 不受影响。未改动任何服务端网络安全规则。
 - 单元测试：feedUrls.test.ts 新增 3 例。E2E 跑在 dev 服务器上（DEV 为真），订阅失败状态用例无需改动。
 - 验证：lint、两套 typecheck、74 个单测、build 通过；构建产物含新说明文案；6 条 E2E 通过。
-- 已知取舍：
-pm start 托管 dist 时同源 /api 可用，但该构建未设置 VITE_FEED_API_URL，因此也会隐藏 Refresh；需要时在构建时设置 VITE_FEED_API_URL 为同源地址。
+- 已知取舍：`npm start` 托管 dist 时同源 /api 可用，但该构建未设置 VITE_FEED_API_URL，因此也会隐藏 Refresh；需要时在构建时设置 VITE_FEED_API_URL 为同源地址。
 
 ## 2026-11-18 - 任务 18.8：限频按托管网关提供的请求头取客户端 IP
 对应需求：R9.12。
@@ -241,3 +240,24 @@ pm start 托管 dist 时同源 /api 可用，但该构建未设置 VITE_FEED_API
 - 单元测试：新增 tests/unit/clientIp.test.ts，覆盖未配置、合法 IPv4、合法 IPv6、缺失、非法值、逗号列表、数组值和无 req.ip。
 - README 和 tech steering 的环境变量说明加入 CLIENT_IP_HEADER。
 - 待办：在 Railway 设置 CLIENT_IP_HEADER=x-real-ip 并重新部署后，重测连续 22 次请求应在第 21 次返回 429，并确认伪造 X-Real-IP / X-Forwarded-For 不能换取新的限频桶。
+
+## 2026-11-18 - 任务 18.7：订阅服务部署到 Railway 并接通 Pages 构建
+对应需求：R9.11、R9.12、R10.10。
+- 部署：Railway Free 计划，单实例，地址 https://echoshelf-feeds-production-1c901821.up.railway.app。根目录 `2026kirowen`，Build Command `echo "skip build"`，启动命令 `npm start`，端口 8080。环境变量：ALLOWED_ORIGINS=https://jw5812018.github.io、TRUST_PROXY_HOPS=1、CLIENT_IP_HEADER=x-real-ip、FEED_RATE_LIMIT=20、NODE_VERSION=22。
+- Pages：仓库变量 FEED_API_URL 已设置。workflow_dispatch 运行 44269372343 部署后，用户在线上页面点 Refresh，成功显示了文章。
+- 失败过程：
+  - GoDaddy Airo 的预览地址有登录保护，请求返回 401，不能作为公开的订阅服务。
+  - 写了 nixpacks.json 来控制构建，但 Railway 现在用 Railpack 构建，这个文件不起作用。
+  - 构建命令跑 npm ci 报 EBUSY。Railpack 已经用 npm install 装好依赖，所以把 Build Command 改为 `echo "skip build"`。
+  - 曾经测错域名：拿 GoDaddy 的项目 ID 拼出 fd7r3lhapf.railway.app 去测，这个域名不是本服务，那次的结果作废。排查时在服务端临时加了调试代码，之后已撤回，src 没有留下改动。
+  - 限频失效：只设 TRUST_PROXY_HOPS=1 时，连续 22 次请求都没有返回 429。由 18.8 修复（CLIENT_IP_HEADER=x-real-ip）。
+- 实测结果（2026-11-18，北京时间）：
+  - `GET /api/health` 返回 200。
+  - 允许来源的预检返回 204，其他来源返回 403。
+  - RSS：https://hnrss.org/frontpage 抓取成功。
+  - Atom（16:50:26）：POST /api/feeds/fetch，Origin 为 https://jw5812018.github.io，url 为 https://github.com/nodejs/node/releases.atom。返回 HTTP 200，`access-control-allow-origin: https://jw5812018.github.io`，`ok:true`，finalUrl 与请求地址相同，totalParsed=10，returned=10，truncated=false，invalidCount=0。
+  - 安全规则：https://127.0.0.1 和 https://169.254.169.254 返回 400 blocked-target，http:// 地址返回 400 invalid-url。
+  - 限频与伪造请求头：设置 CLIENT_IP_HEADER 之前，连续 22 次请求没有 429；设置之后正常返回 429，伪造 X-Real-IP 或 X-Forwarded-For 仍然是 429。
+  - 两个出口 IP 的独立限额：直连访问 https://api.ipify.org 被重置（`curl: (35) Recv failure: Connection was reset`），两条路径改用同一服务商的 https://api64.ipify.org 查询，确认直连和本机代理（127.0.0.1:7897）的出口 IP 不同（具体 IP 不记录）。16:51:38 起直连连续发送 body `{"url":"https://127.0.0.1/feed"}`：第 1–19 次返回 400 blocked-target，第 20 次返回 429 rate-limited（retryAfterSeconds=496）。加上之前那次 Atom 请求，同一窗口内第 21 次被限，与上限 20 一致。第一次脚本中代理那一步没有写出结果，于是单独重跑：16:53:00 代理路径返回 400 blocked-target（不是 429），紧接着直连返回 429（retryAfterSeconds=441）。
+- 网络安全规则和限额没有改动；本次没有修改 src。
+- 结论：18.7 勾选完成。

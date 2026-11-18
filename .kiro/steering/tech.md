@@ -29,10 +29,12 @@
 ## Deployment
 
 - Client: GitHub Pages via `.github/workflows/pages.yml` (reads repo variable `FEED_API_URL`).
-- Feed API: currently not hosted. The online static build hides Refresh; live refresh
-  runs on the local build (`npm run dev` / `npm start`). Env vars if a host is added later:
-  `ALLOWED_ORIGINS`, `TRUST_PROXY_HOPS`, `CLIENT_IP_HEADER` (e.g. `x-real-ip` on Railway;
-  falls back to `req.ip` when missing or invalid), `FEED_RATE_LIMIT`.
+- Feed API: hosted on Railway (Free plan, one instance; root directory `2026kirowen`,
+  build command `echo "skip build"`, start command `npm start`). The Pages build points
+  at it through `FEED_API_URL`; when that variable is unset, the static build hides
+  Refresh and live refresh runs on the local build (`npm run dev` / `npm start`).
+  Service env vars: `ALLOWED_ORIGINS`, `TRUST_PROXY_HOPS`, `CLIENT_IP_HEADER`
+  (`x-real-ip` on Railway; falls back to `req.ip` when missing or invalid), `FEED_RATE_LIMIT`.
 - The feed API is the only network egress: HTTPS-only, public targets, pinned DNS
   address, ≤3 redirects, 8 s timeout, 2 MiB cap, 200 items, 5 concurrent. Never loosen
   these rules to "fix" a failing request — record the limitation instead.
