@@ -1,4 +1,4 @@
-﻿import { existsSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import express, { type NextFunction, type Request, type Response } from 'express'
@@ -65,6 +65,12 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
     return
   }
   next()
+})
+
+// Debug: log all requests
+app.use((req, res, next) => {
+  console.log('[DEBUG] Request: ' + req.method + ' ' + req.originalUrl);
+  next();
 })
 
 app.use(express.json({ limit: '4kb' }))
